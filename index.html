@@ -428,16 +428,16 @@ function installPWA() {
       <div class="fld">
         <label>
           <svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><circle cx="168" cy="88" r="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M24,113.22V62.78a8,8,0,0,1,6.68-7.89L168,32a56,56,0,0,1,0,112L30.68,121.11A8,8,0,0,1,24,113.22Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M152,208v8a32,32,0,0,0,32,32h16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M202.49,132.12l-32.36,71.19a8,8,0,0,1-7.28,4.69H144a8,8,0,0,1-8-8V138.67" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-          Сушка пластика
+          Сушка пластика во время печати
         </label>
         <select id="drying"><option value="no">Нет</option></select>
       </div>
       <div class="fld">
         <label>
           <svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><circle cx="80" cy="80" r="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="176" cy="80" r="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="80" cy="176" r="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="176" y1="144" x2="176" y2="208" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="208" y1="176" x2="144" y2="176" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-          Количество штук
+          Количество штук в партии
         </label>
-        <input type="number" id="qty" aria-label="Количество штук" value="4" min="1" step="1" oninput="checkField('qty','warn-qty',{int:true})"><span id="warn-qty" class="zero-warn" style="display:none">⚠ введите значение</span>
+        <input type="number" id="qty" aria-label="Количество штук в партии" value="4" min="1" step="1" oninput="checkField('qty','warn-qty',{int:true})"><span id="warn-qty" class="zero-warn" style="display:none">⚠ введите значение</span>
       </div>
     </div>
   </div>
