@@ -1286,7 +1286,7 @@ function calc(){
   const printer=cfg.printers.find(p=>p.id===prId)||cfg.printers[0];
   const dryer=cfg.dryers.find(d=>d.id===printer?.dryerId);
   const hourRate=printer.cost/cfg.depreciationHours;
-  const kwh=drying?(dryer?.kw||0):printer.kw;
+  const kwh=printer.kw+(drying?(dryer?.kw||0):0);
   const plasticTot=(gramIn/1000)*plastic.pricePerKg;
   const pl1=plasticTot/qty;
   const printerTot=hourRate*hourIn;
