@@ -137,6 +137,7 @@ self.addEventListener('fetch', e => {
     document.body.classList.add('app-ready');
   }
 
+  var splashRan = false;
   function runSplash() {
     var o = document.getElementById('splash-overlay');
     if (!o) return;
@@ -144,21 +145,22 @@ self.addEventListener('fetch', e => {
     var tx = o.querySelector('.splash-text');
     var pl = o.querySelector('.print-layer');
 
-    // Reset animations
-    resetAnim(pl, 'cssPrint 1.0s cubic-bezier(0.4,0,0.2,1) both');
-    resetAnim(lw, 'logoGrow 0.8s cubic-bezier(0.4,0,0.2,1) 1.0s forwards');
-    resetAnim(tx, 'textCollapse 0.8s cubic-bezier(0.4,0,0.2,1) 1.0s forwards');
-    resetAnim(o,  'fadeOut 0.4s ease 1.9s forwards');
-
-    // Reset clip-path for print-layer
-    if (pl) {
-      pl.style.clipPath = 'inset(100% 0% 0% 0%)';
-      pl.style.webkitClipPath = 'inset(100% 0% 0% 0%)';
+    // On the first run, CSS handles the animation — don't reset (causes flicker).
+    // Reset only on bfcache restore so the animation replays.
+    if (splashRan) {
+      resetAnim(pl, 'cssPrint 1.0s cubic-bezier(0.4,0,0.2,1) both');
+      resetAnim(lw, 'logoGrow 0.8s cubic-bezier(0.4,0,0.2,1) 1.0s forwards');
+      resetAnim(tx, 'textCollapse 0.8s cubic-bezier(0.4,0,0.2,1) 1.0s forwards');
+      resetAnim(o,  'fadeOut 0.4s ease 1.9s forwards');
+      if (pl) {
+        pl.style.clipPath = 'inset(100% 0% 0% 0%)';
+        pl.style.webkitClipPath = 'inset(100% 0% 0% 0%)';
+      }
+      o.style.display = 'flex';
+      o.style.opacity = '1';
+      document.body.classList.remove('app-ready');
     }
-
-    o.style.display = 'flex';
-    o.style.opacity = '1';
-    document.body.classList.remove('app-ready');
+    splashRan = true;
 
     // ── УМНЫЙ СПЛЕШ: скрываем по концу CSS-анимации fadeOut ──
     // Без жёсткого таймаута. Fallback — только если анимация
@@ -186,6 +188,47 @@ self.addEventListener('fetch', e => {
   window.addEventListener('pageshow', function(e) {
     if (e.persisted) runSplash();
   });
+})();
+
+// ── THEME MODE (light / auto / dark) ───────────────────
+// Reads localStorage on startup, listens to clicks on [data-set-mode]
+// buttons, persists choice, and keeps the visible label in sync.
+(function initThemeMode() {
+  var html = document.documentElement;
+  var labels = { light: 'Светлая', auto: 'По системе', dark: 'Тёмная' };
+
+  // Apply saved mode immediately (before paint) to avoid flicker.
+  try {
+    var saved = localStorage.getItem('3dp_mode') || 'auto';
+    html.setAttribute('data-mode', saved);
+  } catch (e) {}
+
+  function syncUI() {
+    var m = html.getAttribute('data-mode') || 'auto';
+    document.querySelectorAll('[data-set-mode]').forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-set-mode') === m);
+    });
+    var lbl = document.getElementById('tm-label');
+    if (lbl) lbl.textContent = labels[m] || labels.auto;
+  }
+
+  function setup() {
+    syncUI();
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-set-mode]');
+      if (!b) return;
+      var v = b.getAttribute('data-set-mode');
+      html.setAttribute('data-mode', v);
+      try { localStorage.setItem('3dp_mode', v); } catch (e2) {}
+      syncUI();
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup, { once: true });
+  } else {
+    setup();
+  }
 })();
 
 // ── FAB: SCROLL TO SALES (mobile only) ───────────────────────
@@ -345,8 +388,15 @@ function checkField(id, warnId, opts) {
   }
   if (id === 'qty') {
     const qhEl = document.getElementById('qhint');
-    if (qhEl && v !== '' && !Number.isInteger(n) && n > 0) { qhEl.style.color = 'var(--red)'; }
-    else if (qhEl) { qhEl.style.color = ''; }
+    if (qhEl) {
+      // Красный, если пусто, либо ≤ 0, либо не целое > 0.
+      // Не трогаем в остальных случаях (calc() сам выставит правильный цвет).
+      if (v === '' || n <= 0 || (n > 0 && !Number.isInteger(n))) {
+        qhEl.style.color = 'var(--red)';
+      } else {
+        qhEl.style.color = '';
+      }
+    }
   }
 }
 function checkAllFields() {
@@ -851,7 +901,7 @@ function updateSales() {
   const pe = document.getElementById('s_prof');
   pe.textContent = fmt(Math.abs(profit) < 0.005 ? 0 : profit);
   pe.className = 'profval ' + (profit > 0.005 ? 'pos' : 'neg');
-  document.getElementById('s_net').style.color = net <= 0 ? 'var(--red)' : '';
+  document.getElementById('s_net').style.color = net > 0.005 ? 'var(--green)' : 'var(--red)';
   const be = document.getElementById('s_bk');
   if (comp.qtyIsZero) { be.textContent = '0 шт'; be.className = 'over'; }
   else if (bk === null) { be.textContent = '—'; be.className = 'over'; }
@@ -1011,13 +1061,83 @@ calc();
 autosaveReady = true;
 
 // ── EVENT LISTENERS ───────────────────────────────────────────
-document.querySelectorAll('input[type=number]:not(#custom-price):not([id^="hc"]):not([id^="s_"]),select:not(#printer)').forEach(el => el.addEventListener('input', calc));
+document.querySelectorAll('input[type=number]:not(#custom-price):not([id^="hc"]):not([id^="s_"]),select:not(#printer)').forEach(el => el.addEventListener('input', function(){ calc(); checkAllFields(); }));
 document.getElementById('commFixed').addEventListener('input', updateSales);
 document.getElementById('printer').addEventListener('change', onPrinterChange);
 document.getElementById('proj-name').addEventListener('keydown', e => { if (e.key === 'Enter') confirmSave(); if (e.key === 'Escape') closeM('mo-save'); });
 
 const ri = document.getElementById('rename-input');
 if (ri) ri.addEventListener('keydown', e => { if (e.key === 'Enter') confirmRename(); if (e.key === 'Escape') closeM('mo-rename'); });
+
+// ── ESTIMATE MODAL (smeta) ──────────────────────────────────
+let estSel = 'unit';
+
+function getCurrentUnitPrice() {
+  const customV = +gv('custom-price') || 0;
+  const prices = {
+    wholesale: comp.wholesale || 0,
+    retail_light: comp.retailLight || 0,
+    retail: comp.retail || 0,
+    custom: customV
+  };
+  return prices[selP] || 0;
+}
+
+function openEstimateMo() {
+  estSel = 'unit';
+  document.querySelectorAll('.est-opt').forEach(o => o.classList.toggle('on', o.getAttribute('data-est') === 'unit'));
+  document.getElementById('est-qty-row').style.display = 'none';
+  sv('est-custom-qty', '');
+  updateEstPrices();
+  openM('mo-estimate');
+}
+
+function selectEst(which) {
+  estSel = which;
+  document.querySelectorAll('.est-opt').forEach(o => o.classList.toggle('on', o.getAttribute('data-est') === which));
+  const qtyRow = document.getElementById('est-qty-row');
+  qtyRow.style.display = (which === 'custom') ? 'flex' : 'none';
+  if (which === 'custom') {
+    setTimeout(() => document.getElementById('est-custom-qty').focus(), 50);
+  }
+  updateEstPrices();
+}
+
+function updateEstPrices() {
+  const unitPrice = getCurrentUnitPrice();
+  const batchQty = +gv('qty') || 1;
+  const customQty = +gv('est-custom-qty') || 0;
+  document.getElementById('est-p-unit').textContent = fmt(unitPrice);
+  document.getElementById('est-batch-qty').textContent = '(' + batchQty + ' шт)';
+  document.getElementById('est-batch-sub').textContent = fmt(unitPrice) + ' / шт × ' + batchQty + ' шт';
+  document.getElementById('est-p-batch').textContent = fmt(unitPrice * batchQty);
+  if (customQty > 0) {
+    document.getElementById('est-custom-sub').textContent = fmt(unitPrice) + ' / шт × ' + customQty + ' шт';
+    document.getElementById('est-p-custom').textContent = fmt(unitPrice * customQty);
+  } else {
+    document.getElementById('est-custom-sub').textContent = 'Введите количество штук';
+    document.getElementById('est-p-custom').textContent = '—';
+  }
+}
+
+function updateEstCustom() {
+  updateEstPrices();
+  if ((+gv('est-custom-qty') || 0) > 0 && estSel !== 'custom') {
+    selectEst('custom');
+  }
+}
+
+function exportEstimate(format) {
+  // TODO: user will wire actual export. For now just close.
+  console.log('Export estimate:', format, 'option:', estSel);
+  closeM('mo-estimate');
+}
+
+// ── HELP ──────────────────────────────────────────────────
+function openHelp() {
+  // TODO: user will wire actual help content
+  console.log('Help clicked');
+}
 
 // Expose functions globally (called from HTML onclick attributes)
 window.xlsDL = xlsDL;
@@ -1048,6 +1168,13 @@ window.syncDryerSel = syncDryerSel; window.adjDryHours = adjDryHours; window.upd
 window.openSaveAndDownloadMo = openSaveAndDownloadMo;
 window.clearRegSearch = clearRegSearch;
 window.confirmDelSnap = confirmDelSnap; window.execDelSnap = execDelSnap;
+window.openHelp = openHelp;
+window.openEstimateMo = openEstimateMo;
+window.selectEst = selectEst;
+window.updateEstCustom = updateEstCustom;
+window.exportEstimate = exportEstimate;
+window.checkField = checkField;
+window.checkAllFields = checkAllFields;
 window.installPWA = installPWA;
 
 }); // end DOMContentLoaded
