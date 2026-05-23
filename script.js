@@ -4,35 +4,7 @@
 // Architecture: DOMContentLoaded wrapper, smart splash (no timeout)
 // ============================================================
 
-// ── PWA: INLINE MANIFEST ───────────────────────────────────
-(function initManifest() {
-  const manifestData = {
-    name: "Калькулятор 3D печати",
-    short_name: "3D Калькулятор",
-    description: "Калькулятор себестоимости FDM 3D печати — пластик, амортизация, электричество, оператор",
-    start_url: "./",
-    scope: "./",
-    display: "standalone",
-    orientation: "portrait-primary",
-    background_color: "#1b1b1b",
-    theme_color: "#0052db",
-    icons: [
-      { src: "icon-180.png", sizes: "180x180", type: "image/png", purpose: "any" },
-      { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
-      { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
-    ]
-  };
-  // Inject manifest as blob URL
-  const manifestBlob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
-  const manifestURL = URL.createObjectURL(manifestBlob);
-  const manifestLink = document.querySelector('link[rel="manifest"]');
-  if (manifestLink) manifestLink.href = manifestURL;
-  else {
-    const l = document.createElement('link');
-    l.rel = 'manifest'; l.href = manifestURL;
-    document.head.appendChild(l);
-  }
-})();
+// ── PWA: MANIFEST — статический manifest.json рядом с index.html (Шаг 2) ──
 
 // ── PWA: INSTALL PROMPT ────────────────────────────────────
 let deferredPrompt = null;
@@ -54,68 +26,12 @@ function installPWA() {
 }
 
 // ── SERVICE WORKER REGISTRATION ─────────────────────────────
+// SW вынесен в sw.js рядом с index.html (Шаг 3).
+// Blob URL убран — SW теперь работает как корневой scope на Safari iOS.
 (function initSW() {
   if (!('serviceWorker' in navigator) || location.protocol !== 'https:') return;
-
-  const SW_CODE = `
-const CACHE = '3dprint-v4';
-// Cache-First assets (large libs that rarely change)
-const CACHE_FIRST_PATTERNS = [/xlsx\\.full\\.min\\.js/, /jspdf/];
-
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll([self.location.pathname || '/']))
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
-});
-
-self.addEventListener('fetch', e => {
-  const url = e.request.url;
-  const isCacheFirst = CACHE_FIRST_PATTERNS.some(p => p.test(url));
-
-  if (isCacheFirst) {
-    // Cache-First: xlsx.full.min.js и jspdf никогда не меняются
-    e.respondWith(
-      caches.open(CACHE).then(cache =>
-        cache.match(e.request).then(cached => {
-          if (cached) return cached;
-          return fetch(e.request).then(response => {
-            if (response && response.status === 200) {
-              cache.put(e.request, response.clone());
-            }
-            return response;
-          });
-        })
-      )
-    );
-  } else {
-    // Network-First: index.html, script.js, style.css, config.js, help.js — обновления сразу
-    e.respondWith(
-      fetch(e.request)
-        .then(response => {
-          if (response && response.status === 200) {
-            caches.open(CACHE).then(cache => cache.put(e.request, response.clone()));
-          }
-          return response;
-        })
-        .catch(() => caches.match(e.request))
-    );
-  }
-});
-`;
-  const blob = new Blob([SW_CODE], { type: 'application/javascript' });
-  const swUrl = URL.createObjectURL(blob);
-  navigator.serviceWorker.register(swUrl, { scope: './' })
-    .then(() => console.log('[PWA] SW registered (hybrid strategy)'))
+  navigator.serviceWorker.register('./sw.js', { scope: './' })
+    .then(() => console.log('[PWA] SW registered (sw.js)'))
     .catch(err => console.warn('[PWA] SW registration failed:', err.message));
 })();
 
@@ -289,29 +205,35 @@ const LSC = '3dp_cfg_v3', LSR = '3dp_reg_v1';
 
 // ── КОНФИГУРАЦИЯ ───────────────────────────────────────────
 function defCfg() {
+  const C = (typeof CONFIG !== 'undefined') ? CONFIG : {};
+  const D = C.defaults || {};
   return {
-    electricity: 7.08, operatorRate: 250, depreciationHours: 1500, maintenance: 5, defect: 0,
-    dryers: [
+    electricity:       D.electricity       ?? 7.08,
+    operatorRate:      D.operatorRate      ?? 250,
+    depreciationHours: D.depreciationHours ?? 1500,
+    maintenance:       D.maintenance       ?? 5,
+    defect:            D.defect            ?? 0,
+    dryers:   (C.dryers   && C.dryers.length)   ? C.dryers   : [
       {id: 'd1',     name: 'Без сушки',        kw: 0},
       {id: 'd3',     name: 'CRLTY PI',         kw: 0.145},
       {id: 'yiwqev', name: 'CRLTY PI PLUS',    kw: 0.16},
       {id: '08gv07', name: 'CRLTY PI PLUS х2', kw: 0.32},
       {id: 'jnlpbu', name: 'CRLTY PI X4',      kw: 0.36},
     ],
-    printers: [
+    printers: (C.printers && C.printers.length) ? C.printers : [
       {id: 'bambu',   name: 'Bambu A1C', cost: 37000, kw: 0.13, dryerId: 'jnlpbu'},
       {id: 'ff_ad5m', name: 'FF AD5M',  cost: 24500, kw: 0.15, dryerId: 'd3'},
       {id: 'ff_ad5x', name: 'FF AD5X',  cost: 33000, kw: 0.20, dryerId: '08gv07'},
     ],
-    plastics: [
+    plastics: (C.plastics && C.plastics.length) ? C.plastics : [
       {id: 'petg',   name: 'PETG', pricePerKg: 900},
       {id: 'pla',    name: 'PLA',  pricePerKg: 1000},
       {id: 'g0kzdf', name: 'TPU',  pricePerKg: 1100},
     ],
-    taxes: [
-      {id: 'none', name: 'Без налога',             rate: 0},
+    taxes:    (C.taxes    && C.taxes.length)    ? C.taxes    : [
+      {id: 'none', name: 'Без налога',              rate: 0},
       {id: 'phys', name: 'Физ. лица (самозанятый)', rate: 4},
-      {id: 'jur',  name: 'Юр. лица / ИП',          rate: 6},
+      {id: 'jur',  name: 'Юр. лица / ИП',           rate: 6},
     ],
   };
 }
@@ -329,6 +251,7 @@ try {
     : [];
 } catch { reg = []; }
 ['maintenance', 'defect'].forEach(k => { if (cfg[k] === undefined) cfg[k] = k === 'maintenance' ? 5 : 0; });
+if (!cfg.depreciationHours) cfg.depreciationHours = 1500;
 
 function svC() { try { localStorage.setItem(LSC, JSON.stringify(cfg)); } catch(e) { console.warn('cfg save failed', e); } }
 function svR() {
@@ -340,7 +263,10 @@ function svR() {
     }
     localStorage.setItem(LSR, data);
   } catch(e) {
-    alert('Ошибка сохранения реестра. Возможно, превышен лимит хранилища (~5MB). Экспортируйте данные и очистите старые записи.');
+    // QuotaExceededError — тихий badge вместо alert (Safari iOS в приватном режиме)
+    const b = document.getElementById('autosave-badge');
+    if (b) { b.textContent = '⚠️ Хранилище переполнено — экспортируйте реестр'; b.classList.add('show'); setTimeout(() => b.classList.remove('show'), 6000); }
+    else { console.warn('svR: storage quota exceeded', e); }
   }
 }
 
@@ -496,7 +422,7 @@ function renderReg() {
       <div class="ri-info">
         <div class="ri-title">${escH(r.name)}</div>
         <div class="ri-meta"><span class="ri-seg">${escH(r.date)}</span><span class="ri-sep"> · </span><span class="ri-seg">${escH(r.printerName)}</span>${r.cost1 ? '<span class="ri-sep"> · </span><span class="ri-seg">' + fmt(r.cost1) + '/шт</span>' : ''}</div>
-        <div class="ri-sub"><span class="ri-seg">${r.hours} ч</span><span class="ri-sep"> · </span><span class="ri-seg">${r.grams} г</span><span class="ri-sep"> · </span><span class="ri-seg">${escH(r.plasticName)}</span></div>
+        <div class="ri-sub"><span class="ri-seg">${escH(String(r.hours))} ч</span><span class="ri-sep"> · </span><span class="ri-seg">${escH(String(r.grams))} г</span><span class="ri-sep"> · </span><span class="ri-seg">${escH(r.plasticName)}</span></div>
       </div>
       <div class="ri-btns">
         <button class="ri-edit" title="Переименовать" onclick="startRename('${r.id}')"><svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M92.69,216H48a8,8,0,0,1-8-8V163.31a8,8,0,0,1,2.34-5.65L165.66,34.34a8,8,0,0,1,11.31,0L221.66,79a8,8,0,0,1,0,11.31L98.34,213.66A8,8,0,0,1,92.69,216Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="136" y1="64" x2="192" y2="120" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="164" y1="92" x2="68" y2="188" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="95.49" y1="215.49" x2="40.51" y2="160.51" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg></button>
@@ -717,6 +643,7 @@ function importFile(e) {
     if (file.size > 20 * 1024 * 1024) { alert('Файл слишком большой (макс. 20 МБ)'); e.target.value = ''; return; }
     reader.readAsArrayBuffer(file);
   } else if (ext === 'json') {
+    if (file.size > 5 * 1024 * 1024) { alert('JSON-файл слишком большой (макс. 5 МБ)'); e.target.value = ''; return; }
     const reader = new FileReader();
     reader.onload = ev => {
       try {
@@ -728,7 +655,10 @@ function importFile(e) {
           updated.push('конфигурация');
         }
         if (Array.isArray(data.reg)) {
-          reg = data.reg.filter(x => x && x.id && x.name); svR();
+          reg = data.reg
+            .filter(x => x && x.id && x.name)
+            .map(x => ({...x, id: String(x.id).replace(/[^a-z0-9_-]/gi, ''), name: String(x.name).slice(0, 200)}));
+          svR();
           updated.push('реестр');
         }
         if (updated.length === 0) { alert('Данные не найдены в JSON файле'); return; }
@@ -921,8 +851,9 @@ function calc() {
   const gramIn = safeNum(gv('grams'), 0, 0, 100000), hourIn = safeNum(gv('hours'), 0, 0, 10000);
   const plastic = cfg.plastics.find(p => p.id === plId) || cfg.plastics[0];
   const printer = cfg.printers.find(p => p.id === prId) || cfg.printers[0];
+  if (!printer || !plastic) return; // guard: все принтеры/пластики удалены
   const dryer = cfg.dryers.find(d => d.id === printer?.dryerId);
-  const hourRate = printer.cost / cfg.depreciationHours;
+  const hourRate = printer.cost / Math.max(1, cfg.depreciationHours);
   const kwh = printer.kw + (drying ? (dryer?.kw || 0) : 0);
   const plasticTot = (gramIn / 1000) * plastic.pricePerKg;
   const pl1 = plasticTot / qty;
@@ -1060,6 +991,29 @@ restoreAutosave();
 calc();
 autosaveReady = true;
 
+// ── СОХРАНЕНИЕ ПРИ УХОДЕ СО СТРАНИЦЫ ────────────────────────
+// Защита от закрытия вкладки до истечения debounce (1500мс).
+// visibilitychange — iOS Safari выгружает вкладку в фоне.
+// pagehide — универсальный аналог beforeunload для мобильных.
+function flushAutosave() {
+  if (!autosaveReady) return;
+  clearTimeout(autosaveTimer);
+  const snap = {
+    ts: Date.now(),
+    plasticId: gv('plastic'), printerId: gv('printer'),
+    grams: gv('grams'), hours: gv('hours'), drying: gv('drying'), qty: gv('qty'),
+    extraFixed: gv('extraFixed'), extraParts: gv('extraParts'), packaging: gv('packaging'),
+    prepTime: gv('prepTime'), postTime: gv('postTime'), logTime: gv('logTime'),
+    commission: gv('commission'), commFixed: gv('commFixed'),
+    customPrice: gv('custom-price'), selP, selT,
+  };
+  try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(snap)); } catch(e) { console.warn('flushAutosave failed', e); }
+}
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') flushAutosave();
+});
+window.addEventListener('pagehide', flushAutosave);
+
 // ── EVENT LISTENERS ───────────────────────────────────────────
 document.querySelectorAll('input[type=number]:not(#custom-price):not([id^="hc"]):not([id^="s_"]),select:not(#printer)').forEach(el => el.addEventListener('input', function(){ calc(); checkAllFields(); }));
 document.getElementById('commFixed').addEventListener('input', updateSales);
@@ -1133,11 +1087,7 @@ function exportEstimate(format) {
   closeM('mo-estimate');
 }
 
-// ── HELP ──────────────────────────────────────────────────
-function openHelp() {
-  // TODO: user will wire actual help content
-  console.log('Help clicked');
-}
+// ── HELP — реализован в help.js ──────────────────────────
 
 // Expose functions globally (called from HTML onclick attributes)
 window.xlsDL = xlsDL;
@@ -1168,7 +1118,7 @@ window.syncDryerSel = syncDryerSel; window.adjDryHours = adjDryHours; window.upd
 window.openSaveAndDownloadMo = openSaveAndDownloadMo;
 window.clearRegSearch = clearRegSearch;
 window.confirmDelSnap = confirmDelSnap; window.execDelSnap = execDelSnap;
-window.openHelp = openHelp;
+// window.openHelp — задаётся в help.js
 window.openEstimateMo = openEstimateMo;
 window.selectEst = selectEst;
 window.updateEstCustom = updateEstCustom;

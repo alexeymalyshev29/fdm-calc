@@ -1,0 +1,16 @@
+{
+  "name": "Калькулятор 3D печати",
+  "short_name": "3D Калькулятор",
+  "description": "Калькулятор себестоимости FDM 3D печати — пластик, амортизация, электричество, оператор",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1b1b1b",
+  "theme_color": "#0052db",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
