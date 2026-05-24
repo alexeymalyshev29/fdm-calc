@@ -39,9 +39,9 @@ var CONFIG = {
   // ── ПРИНТЕРЫ ─────────────────────────────────────────────────
   // dryerId — id сушилки из списка выше, привязанной к принтеру
   printers: [
-    { id: 'bambu',   name: 'Bambu A1C', cost: 37000, kw: 0.13, dryerId: 'jnlpbu' },
-    { id: 'ff_ad5m', name: 'FF AD5M',  cost: 24500, kw: 0.15, dryerId: 'd3'     },
-    { id: 'ff_ad5x', name: 'FF AD5X',  cost: 33000, kw: 0.20, dryerId: '08gv07' },
+    { id: 'bambu',   name: 'Bambu A1C', cost: 37000, kw: 0.13, dryerId: 'jnlpbu', maintenance: 5 },
+    { id: 'ff_ad5m', name: 'FF AD5M',  cost: 24500, kw: 0.15, dryerId: 'd3',     maintenance: 5 },
+    { id: 'ff_ad5x', name: 'FF AD5X',  cost: 33000, kw: 0.20, dryerId: '08gv07', maintenance: 5 },
   ],
 
   // ── ПЛАСТИКИ ─────────────────────────────────────────────────

@@ -221,11 +221,11 @@ function defCfg() {
       {id: 'jnlpbu', name: 'CRLTY PI X4',      kw: 0.36},
     ],
     printers: (C.printers && C.printers.length) ? C.printers : [
-      {id: 'bambu',   name: 'Bambu A1C', cost: 37000, kw: 0.13, dryerId: 'jnlpbu'},
-      {id: 'ff_ad5m', name: 'FF AD5M',  cost: 24500, kw: 0.15, dryerId: 'd3'},
-      {id: 'ff_ad5x', name: 'FF AD5X',  cost: 33000, kw: 0.20, dryerId: '08gv07'},
+      {id: 'bambu',   name: 'Bambu A1C', cost: 37000, kw: 0.13, dryerId: 'jnlpbu', maintenance: 5},
+      {id: 'ff_ad5m', name: 'FF AD5M',  cost: 24500, kw: 0.15, dryerId: 'd3',     maintenance: 5},
+      {id: 'ff_ad5x', name: 'FF AD5X',  cost: 33000, kw: 0.20, dryerId: '08gv07', maintenance: 5},
     ],
-    plastics: (C.plastics && C.plastics.length) ? C.plastics : [
+    filaments: (C.filaments && C.filaments.length) ? C.filaments : [
       {id: 'petg',   name: 'PETG', pricePerKg: 900},
       {id: 'pla',    name: 'PLA',  pricePerKg: 1000},
       {id: 'g0kzdf', name: 'TPU',  pricePerKg: 1100},
@@ -242,6 +242,9 @@ let cfg, reg;
 try {
   const _c = JSON.parse(localStorage.getItem(LSC));
   cfg = (_c && typeof _c === 'object' && _c.electricity) ? _c : defCfg();
+  // ── Миграция: plastics → filaments ──────────────────────────────────────
+  if (cfg.plastics && !cfg.filaments) { cfg.filaments = cfg.plastics; delete cfg.plastics; }
+  if (!cfg.filaments || !cfg.filaments.length) cfg.filaments = defCfg().filaments;
 } catch { cfg = defCfg(); }
 try {
   const _r = JSON.parse(localStorage.getItem(LSR));
@@ -249,9 +252,18 @@ try {
     ? _r.filter(x => x && x.id && x.name)
         .map(x => ({...x, id: String(x.id).replace(/[^a-z0-9_-]/gi, ''), name: String(x.name).slice(0, 200)}))
     : [];
+  // ── Миграция: plasticId/plasticName → filamentId/filamentName в реестре ─
+  reg.forEach(r => {
+    if (r.plasticName && !r.filamentName) { r.filamentName = r.plasticName; delete r.plasticName; }
+    if (r.params) {
+      if (r.params.plasticId && !r.params.filamentId) { r.params.filamentId = r.params.plasticId; delete r.params.plasticId; }
+    }
+  });
 } catch { reg = []; }
 ['maintenance', 'defect'].forEach(k => { if (cfg[k] === undefined) cfg[k] = k === 'maintenance' ? 5 : 0; });
 if (!cfg.depreciationHours) cfg.depreciationHours = 1500;
+// ── Миграция: maintenance переехал из глобального cfg в каждый принтер ────
+cfg.printers.forEach(p => { if (p.maintenance === undefined) p.maintenance = cfg.defaults?.maintenance ?? cfg.maintenance ?? 5; });
 
 function svC() { try { localStorage.setItem(LSC, JSON.stringify(cfg)); } catch(e) { console.warn('cfg save failed', e); } }
 function svR() {
@@ -271,6 +283,217 @@ function svR() {
 }
 
 let selP = 'retail_light', selT = 'none', comp = {}, pendRep = null;
+let hoursCalcTableId = null; // id стола, для которого открыт калькулятор времени
+
+// ── МУЛЬТИСТОЛИК ──────────────────────────────────────────────
+// tables — массив столов. Каждый: {id, printerId, filamentId, grams, hours, drying}
+let tables = [];
+
+function tableDefaults() {
+  const p = cfg.printers[0] || {};
+  return {
+    id: uid(),
+    printerId: p.id || '',
+    filaments: [{ id: uid(), filamentId: (cfg.filaments[0] || {}).id || '', grams: '90' }],
+    hours: '6.6',
+    drying: 'no',
+    defect: (CONFIG?.defaults?.defect ?? 0),
+  };
+}
+
+function addTable(data) {
+  const t = data ? {...data} : tableDefaults();
+  if (!t.id) t.id = uid();
+  tables.push(t);
+  renderTables();
+  calc();
+  checkAllFields();
+}
+
+function removeTable(id) {
+  if (tables.length <= 1) return; // минимум 1 стол
+  tables = tables.filter(t => t.id !== id);
+  renderTables();
+  calc();
+  checkAllFields();
+}
+
+function renderTables() {
+  const container = document.getElementById('tables-container');
+  if (!container) return;
+  container.innerHTML = tables.map((t, idx) => renderTableHTML(t, idx)).join('');
+}
+
+function renderTableHTML(t, idx) {
+  const printerOpts = cfg.printers.map(p =>
+    `<option value="${escH(p.id)}"${p.id === t.printerId ? ' selected' : ''}>${escH(p.name)}</option>`
+  ).join('');
+  function filamentOpts(f) {
+    return cfg.filaments.map(p =>
+      `<option value="${escH(p.id)}"${p.id === f.filamentId ? ' selected' : ''}>${escH(p.name)} — ${p.pricePerKg} ₽/кг</option>`
+    ).join('');
+  }
+
+  // Сушилка для этого стола
+  const printer = cfg.printers.find(p => p.id === t.printerId) || cfg.printers[0];
+  const dryer = printer ? cfg.dryers.find(d => d.id === printer.dryerId) : null;
+  const dryerOpt = (dryer && dryer.kw > 0)
+    ? `<option value="yes"${t.drying === 'yes' ? ' selected' : ''}>${escH(dryer.name)} (${dryer.kw} кВт)</option>`
+    : '';
+
+  const canDelete = tables.length > 1;
+  const num = tables.length > 1
+    ? `<span class="table-num table-card-num">Стол ${idx + 1}</span>`
+    : `<span class="table-num table-card-num">Стол</span>`;
+
+  // Иконки для полей карточки стола (Phosphor Icons, inline SVG)
+  // Тип филамента — иконка «два круга» (используется в настройках для Филаментов)
+  const iconPlastic = `<svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0;margin-right:3px" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><circle cx="128" cy="128" r="96"/><circle cx="128" cy="128" r="48"/></svg>`;
+  // Принтер — иконка принтера (та же что в настройках)
+  const iconPrinter = `<svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0;margin-right:3px" viewBox="32 48 192 160" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><line x1="40" y1="200" x2="216" y2="200"/><line x1="56" y1="56" x2="56" y2="200"/><line x1="200" y1="56" x2="200" y2="200"/><line x1="56" y1="88" x2="96" y2="88"/><line x1="160" y1="88" x2="200" y2="88"/><rect x="96" y="64" width="64" height="48" rx="6"/><polyline points="116 112 116 124 128 140 140 124 140 112"/><polyline points="128 140 128 160 80 160 80 180 176 180"/></svg>`;
+  // Граммов филамента — иконка «пакет» (куб / коробка)
+  const iconGrams = `<svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0;margin-right:3px" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><line x1="128" y1="40" x2="128" y2="216"/><line x1="104" y1="216" x2="152" y2="216"/><line x1="56" y1="88" x2="200" y2="56"/><path d="M24,168c0,17.67,20,24,32,24s32-6.33,32-24L56,88Z"/><path d="M168,136c0,17.67,20,24,32,24s32-6.33,32-24L200,56Z"/></svg>`;
+  // Часов печати — иконка часов (та же что в модальном окне)
+  const iconHours = `<svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0;margin-right:3px" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><circle cx="128" cy="136" r="88"/><line x1="128" y1="136" x2="168" y2="96"/><line x1="104" y1="16" x2="152" y2="16"/></svg>`;
+  // Сушка — иконка сушилки (та же что в настройках)
+  const iconDryer = `<svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0;margin-right:3px" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M152,208v8a32,32,0,0,0,32,32h16"/><circle cx="168" cy="88" r="24"/><path d="M24,113.22V62.78a8,8,0,0,1,6.68-7.89L168,32a56,56,0,0,1,0,112L30.68,121.11A8,8,0,0,1,24,113.22Z"/><path d="M202.49,132.12l-32.36,71.19a8,8,0,0,1-7.28,4.69H144a8,8,0,0,1-8-8V138.67"/></svg>`;
+  const iconDefect = `<svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0;margin-right:3px" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M104,208H40a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8H216a8,8,0,0,1,8,8V88l-48,16-16,40-40,16Z"/><path d="M137.73,208l7.94-23.8,39-15.58,15.58-39,23.8-7.94V200a8,8,0,0,1-8,8Z"/><path d="M32,168.69l54.34-54.35a8,8,0,0,1,11.32,0l39,39"/></svg>`
+
+  const filaments = t.filaments || [];
+
+  return `<div class="table-card" data-id="${escH(t.id)}">
+  <div class="table-card-hdr">
+    ${num}
+    ${canDelete ? `<button class="table-del-btn" onclick="removeTable('${escH(t.id)}')" title="Удалить стол">×</button>` : ''}
+  </div>
+
+  <div class="g2">
+    <div class="fld">
+      <label>${iconPrinter}Принтер</label>
+      <select onchange="onTableChange('${escH(t.id)}','printerId',this.value);refreshTableDryer('${escH(t.id)}')">${printerOpts}</select>
+    </div>
+    <div class="fld">
+      <label>${iconHours}Часов печати
+        <span class="hours-help" onclick="openHoursCalc('${escH(t.id)}')" title="Калькулятор времени">?</span>
+      </label>
+      <input type="number" value="${escH(t.hours)}" min="0.1" step="0.1"
+        oninput="onTableChange('${escH(t.id)}','hours',this.value);checkTableField(this,'warn-h-${escH(t.id)}')">
+      <span id="warn-h-${escH(t.id)}" class="zero-warn" style="display:none">⚠ введите значение</span>
+    </div>
+  </div>
+
+  ${filaments.map((f, fi) => {
+    const filNum = filaments.length > 1
+      ? `<span class="table-num">Филамент ${fi + 1}</span>`
+      : `<span class="table-num">Филамент</span>`;
+    return `<div class="filament-card">
+    <div class="filament-card-hdr">
+      ${filNum}
+      ${filaments.length > 1 ? `<button class="table-del-btn" onclick="removeFilament('${escH(t.id)}',${fi})" title="Удалить филамент">×</button>` : ''}
+    </div>
+    <div class="g2">
+      <div class="fld">
+        <label>${iconPlastic}Тип филамента</label>
+        <select onchange="onFilamentChange('${escH(t.id)}',${fi},'filamentId',this.value)">${filamentOpts(f)}</select>
+      </div>
+      <div class="fld">
+        <label>${iconGrams}Граммов филамента</label>
+        <input type="number" value="${escH(f.grams)}" min="1" step="1"
+          oninput="onFilamentChange('${escH(t.id)}',${fi},'grams',this.value);checkTableField(this,'warn-g-${escH(t.id)}-${fi}')">
+        <span id="warn-g-${escH(t.id)}-${fi}" class="zero-warn" style="display:none">⚠ введите значение</span>
+      </div>
+    </div>
+  </div>`;
+  }).join('')}
+
+  <button class="add-filament-btn" onclick="addTableFilament('${escH(t.id)}')">＋ Добавить филамент</button>
+
+  <div class="g2" style="margin-top:10px">
+    <div class="fld">
+      <label>${iconDryer}Сушка филамента во время печати</label>
+      <select id="dry-${escH(t.id)}" onchange="onTableChange('${escH(t.id)}','drying',this.value)">
+        <option value="no">Нет</option>
+        ${dryerOpt}
+      </select>
+    </div>
+    <div class="fld">
+      <label>${iconDefect}Ожидаемый брак (%)</label>
+      <input type="number" value="${+t.defect || 0}" min="0" max="50" step="0.5" oninput="onTableChange('${escH(t.id)}','defect',+this.value)">
+    </div>
+  </div>
+</div>`;
+}
+
+function onTableChange(id, field, value) {
+  const t = tables.find(t => t.id === id);
+  if (!t) return;
+  t[field] = value;
+  calc();
+  triggerAutosave();
+}
+
+function addTableFilament(tableId) {
+  const t = tables.find(t => t.id === tableId);
+  if (!t) return;
+  if (!t.filaments) t.filaments = [];
+  t.filaments.push({ id: uid(), filamentId: (cfg.filaments[0] || {}).id || '', grams: '0' });
+  renderTables();
+  calc();
+  checkAllFields();
+  triggerAutosave();
+}
+
+function removeFilament(tableId, fi) {
+  const t = tables.find(t => t.id === tableId);
+  if (!t || !t.filaments || t.filaments.length <= 1) return;
+  t.filaments.splice(fi, 1);
+  renderTables();
+  calc();
+  checkAllFields();
+  triggerAutosave();
+}
+
+function onFilamentChange(tableId, fi, field, value) {
+  const t = tables.find(t => t.id === tableId);
+  if (!t || !t.filaments || !t.filaments[fi]) return;
+  t.filaments[fi][field] = value;
+  calc();
+  triggerAutosave();
+}
+
+function refreshTableDryer(id) {
+  const t = tables.find(t => t.id === id);
+  if (!t) return;
+  const printer = cfg.printers.find(p => p.id === t.printerId) || cfg.printers[0];
+  const dryer = printer ? cfg.dryers.find(d => d.id === printer.dryerId) : null;
+  const sel = document.getElementById('dry-' + id);
+  if (!sel) return;
+  sel.innerHTML = '<option value="no">Нет</option>';
+  if (dryer && dryer.kw > 0) {
+    const opt = document.createElement('option');
+    opt.value = 'yes';
+    opt.textContent = dryer.name + ' (' + dryer.kw + ' кВт)';
+    sel.appendChild(opt);
+  }
+  t.drying = 'no';
+  sel.value = 'no';
+}
+
+function checkTableField(input, warnId) {
+  const w = document.getElementById(warnId);
+  if (!w) return;
+  const v = input.value;
+  const n = +v;
+  if (v === '' || v === null || v === undefined) {
+    w.textContent = '⚠ введите значение';
+    w.style.display = 'block';
+  } else if (n <= 0) {
+    w.textContent = '⚠';
+    w.style.display = 'block';
+  } else {
+    w.style.display = 'none';
+  }
+}
 
 const App = {
   get cfg() { return cfg; },
@@ -326,9 +549,21 @@ function checkField(id, warnId, opts) {
   }
 }
 function checkAllFields() {
-  checkField('grams', 'warn-grams');
-  checkField('hours', 'warn-hours');
+  // qty — глобальное поле, проверяем как раньше
   checkField('qty', 'warn-qty', {int: true});
+  // hours и grams (per-filament) внутри карточек столов — проверяем все
+  tables.forEach(t => {
+    const hInput = document.querySelector(`.table-card[data-id="${t.id}"] input[oninput*="hours"]`);
+    if (hInput) checkTableField(hInput, 'warn-h-' + t.id);
+    (t.filaments || []).forEach((f, fi) => {
+      const warnId = 'warn-g-' + t.id + '-' + fi;
+      const warnEl = document.getElementById(warnId);
+      if (!warnEl) return;
+      // Находим input по соседству со span варнинга
+      const gInput = warnEl.previousElementSibling;
+      if (gInput && gInput.tagName === 'INPUT') checkTableField(gInput, warnId);
+    });
+  });
 }
 
 function calcHours() {
@@ -336,10 +571,43 @@ function calcHours() {
   const total = d * 24 + h + m / 60;
   document.getElementById('hc-val').textContent = total > 0 ? total.toFixed(2) : '0';
 }
+function openHoursCalc(tableId) {
+  hoursCalcTableId = tableId;
+  // Сбросить поля
+  sv('hc-d', ''); sv('hc-h', ''); sv('hc-m', '');
+  document.getElementById('hc-val').textContent = '0';
+  // Показать подпись для какого стола (если столов > 1)
+  const labelEl = document.getElementById('hc-table-label');
+  if (labelEl) {
+    if (tables.length > 1) {
+      const idx = tables.findIndex(t => t.id === tableId);
+      labelEl.textContent = 'для Стол ' + (idx + 1);
+      labelEl.style.display = 'block';
+    } else {
+      labelEl.style.display = 'none';
+    }
+  }
+  openM('mo-hours');
+}
+window.openHoursCalc = openHoursCalc;
 function copyHours() {
   const v = document.getElementById('hc-val').textContent;
-  sv('hours', v); calc();
-  checkField('hours', 'warn-hours');
+  if (hoursCalcTableId) {
+    onTableChange(hoursCalcTableId, 'hours', v);
+    // Обновить input в DOM
+    const hInput = document.querySelector(`.table-card[data-id="${hoursCalcTableId}"] input[oninput*="hours"]`);
+    if (hInput) {
+      hInput.value = v;
+      checkTableField(hInput, 'warn-h-' + hoursCalcTableId);
+    }
+  } else {
+    // fallback: если tableId не задан — вставляем в первый стол
+    if (tables.length > 0) {
+      const t = tables[0];
+      onTableChange(t.id, 'hours', v);
+    }
+  }
+  // checkField('hours', 'warn-hours'); // удалено: hours теперь внутри карточек столов
   const c = document.getElementById('hc-copied'); c.classList.add('show');
   setTimeout(() => c.classList.remove('show'), 1500);
   closeM('mo-hours');
@@ -355,7 +623,8 @@ function updateWageCalc() {
 
 // ── СОХРАНЕНИЕ РАСЧЁТОВ ─────────────────────────────────────
 function openSaveMo() {
-  sv('proj-name', '');
+  const orderName = gv('order-name').trim();
+  sv('proj-name', orderName);
   document.getElementById('dup-warn').style.display = 'none';
   const btn = document.getElementById('mo-save-btn');
   btn.textContent = 'Сохранить';
@@ -391,20 +660,33 @@ function doSave(name, replace = false) {
   svR(); closeM('mo-save');
 }
 function buildSnap(name) {
-  const pid = gv('printer'), plid = gv('plastic');
-  const pr = cfg.printers.find(p => p.id === pid) || cfg.printers[0];
-  const pl = cfg.plastics.find(p => p.id === plid) || cfg.plastics[0];
+  // Берём первый стол для совместимости с реестром (printerName, filamentName, hours, grams)
+  const t0 = tables[0] || {};
+  const pr = cfg.printers.find(p => p.id === t0.printerId) || cfg.printers[0] || {};
+  // filamentName: join имён всех филаментов первого стола
+  const t0filaments = t0.filaments || [];
+  const filamentName = t0filaments.length
+    ? t0filaments.map(f => (cfg.filaments.find(p => p.id === f.filamentId) || cfg.filaments[0] || {}).name || '—').join(', ')
+    : '—';
+  // grams: сумма всех граммов первого стола
+  const gramsTotal = t0filaments.reduce((s, f) => s + (parseFloat(f.grams) || 0), 0);
   return {
     id: uid(), name, date: new Date().toLocaleDateString('ru-RU'),
-    printerName: pr.name, plasticName: pl.name,
-    hours: gv('hours'), grams: gv('grams'), cost1: comp.cost1,
+    printerName: pr.name || '—', filamentName,
+    hours: t0.hours || '0', grams: String(gramsTotal),
+    cost1: comp.cost1,
+    orderName: gv('order-name') || 'Новый заказ',
     params: {
-      plasticId: plid, printerId: pid,
-      grams: gv('grams'), hours: gv('hours'), drying: gv('drying'), qty: gv('qty'),
+      tables: tables.map(t => ({...t})),
+      qty: gv('qty'),
       extraFixed: gv('extraFixed'), extraParts: gv('extraParts'), packaging: gv('packaging'),
       prepTime: gv('prepTime'), postTime: gv('postTime'), logTime: gv('logTime'),
       commission: gv('commission'), commFixed: gv('commFixed'),
       customPrice: gv('custom-price'), selP, selT,
+      // legacy-совместимость для старых снапов
+      filamentId: (t0filaments[0] || {}).filamentId || t0.filamentId,
+      printerId: t0.printerId,
+      grams: String(gramsTotal), hours: t0.hours, drying: t0.drying,
     }
   };
 }
@@ -422,7 +704,7 @@ function renderReg() {
       <div class="ri-info">
         <div class="ri-title">${escH(r.name)}</div>
         <div class="ri-meta"><span class="ri-seg">${escH(r.date)}</span><span class="ri-sep"> · </span><span class="ri-seg">${escH(r.printerName)}</span>${r.cost1 ? '<span class="ri-sep"> · </span><span class="ri-seg">' + fmt(r.cost1) + '/шт</span>' : ''}</div>
-        <div class="ri-sub"><span class="ri-seg">${escH(String(r.hours))} ч</span><span class="ri-sep"> · </span><span class="ri-seg">${escH(String(r.grams))} г</span><span class="ri-sep"> · </span><span class="ri-seg">${escH(r.plasticName)}</span></div>
+        <div class="ri-sub"><span class="ri-seg">${escH(String(r.hours))} ч</span><span class="ri-sep"> · </span><span class="ri-seg">${escH(String(r.grams))} г</span><span class="ri-sep"> · </span><span class="ri-seg">${escH(r.filamentName)}</span></div>
       </div>
       <div class="ri-btns">
         <button class="ri-edit" title="Переименовать" onclick="startRename('${r.id}')"><svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M92.69,216H48a8,8,0,0,1-8-8V163.31a8,8,0,0,1,2.34-5.65L165.66,34.34a8,8,0,0,1,11.31,0L221.66,79a8,8,0,0,1,0,11.31L98.34,213.66A8,8,0,0,1,92.69,216Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="136" y1="64" x2="192" y2="120" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="164" y1="92" x2="68" y2="188" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="95.49" y1="215.49" x2="40.51" y2="160.51" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg></button>
@@ -435,14 +717,44 @@ function loadSnap(id) {
   const r = reg.find(x => x.id === id); if (!r) { console.warn('loadSnap: id not found', id); return; }
   const p = r.params || r;
   if (!p) { console.warn('loadSnap: no params in record', r); return; }
-  sv('grams', p.grams || ''); sv('hours', p.hours || ''); sv('qty', p.qty || '');
+
+  // Восстанавливаем название заказа
+  sv('order-name', r.orderName || p.orderName || '');
+
+  // Восстанавливаем столи (новый формат) или создаём один из legacy-данных
+  tables = [];
+  if (Array.isArray(p.tables) && p.tables.length > 0) {
+    p.tables.forEach(t => tables.push({...t, id: t.id || uid()}));
+    // Обратная совместимость: старые снапы без поля defect
+    tables.forEach(t => { if (t.defect === undefined) t.defect = cfg.defaults?.defect ?? 0; });
+    // Обратная совместимость: старые снапы без filaments (plasticId + grams → filaments[])
+    tables.forEach(t => {
+      if (!t.filaments && t.plasticId) {
+        t.filaments = [{ id: uid(), filamentId: t.plasticId, grams: t.grams || '0' }];
+      } else if (!t.filaments && t.filamentId) {
+        t.filaments = [{ id: uid(), filamentId: t.filamentId, grams: t.grams || '0' }];
+      } else if (!t.filaments) {
+        t.filaments = [{ id: uid(), filamentId: (cfg.filaments[0] || {}).id || '', grams: t.grams || '90' }];
+      }
+    });
+  } else {
+    // legacy: один стол из старого снапа
+    tables.push({
+      id: uid(),
+      printerId: p.printerId || (cfg.printers[0] || {}).id || '',
+      filamentId: p.filamentId || (cfg.filaments[0] || {}).id || '',
+      grams: p.grams || '90',
+      hours: p.hours || '6.6',
+      drying: p.drying || 'no',
+    });
+  }
+  renderTables();
+
+  sv('qty', p.qty || '');
   sv('extraFixed', p.extraFixed || ''); sv('extraParts', p.extraParts || ''); sv('packaging', p.packaging || '');
   sv('prepTime', p.prepTime || ''); sv('postTime', p.postTime || ''); sv('logTime', p.logTime || p.logisticsTime || '');
   sv('commission', p.commission || ''); sv('commFixed', p.commFixed || p.commissionFixed || '');
   sv('custom-price', p.customPrice || '');
-  const ps = document.getElementById('plastic'); if ([...ps.options].some(o => o.value === p.plasticId)) ps.value = p.plasticId;
-  const pr = document.getElementById('printer'); if ([...pr.options].some(o => o.value === p.printerId)) pr.value = p.printerId;
-  rebuildDrying(); sv('drying', p.drying || 'no');
   selP = p.selP || p.selectedPrice || 'retail_light'; selT = p.selT || p.selectedTax || 'none';
   Object.keys(PCS).forEach(k => { const e = document.getElementById(PCS[k].id); if (e) e.classList.toggle('sel', k === selP); });
   renderTaxOps(); calc(); checkAllFields();
@@ -456,8 +768,8 @@ function delSnap(id) { reg = reg.filter(x => x.id !== id); svR(); renderReg(); }
 function snapToRows(r) {
   const p = r.params || {};
   return [
-    ['Название', r.name], ['Дата', r.date], ['Принтер', r.printerName], ['Пластик', r.plasticName],
-    ['Часов печати', +r.hours], ['Граммов пластика', +r.grams],
+    ['Название', r.name], ['Дата', r.date], ['Принтер', r.printerName], ['Филамент', r.filamentName],
+    ['Часов печати', +r.hours], ['Граммов филамента', +r.grams],
     ['Себестоимость 1 шт, ₽', r.cost1 ? +r.cost1.toFixed(2) : ''],
     ['— ПАРАМЕТРЫ —', ''],
     ['Количество штук (годных)', +(p.qty || 0)],
@@ -488,8 +800,8 @@ function exportAllXlsx() {
   if (!reg.length) { alert('Реестр пуст'); return; }
   if (typeof XLSX === 'undefined') { alert('XLSX не загружен'); return; }
   const wb = XLSX.utils.book_new();
-  const rows = [['Название', 'Дата', 'Принтер', 'Пластик', 'Часов', 'Граммов', 'Себест. 1шт, ₽']];
-  reg.forEach(r => rows.push([r.name, r.date, r.printerName, r.plasticName, +r.hours, +r.grams, r.cost1 ? +r.cost1.toFixed(2) : '']));
+  const rows = [['Название', 'Дата', 'Принтер', 'Филамент', 'Часов', 'Граммов', 'Себест. 1шт, ₽']];
+  reg.forEach(r => rows.push([r.name, r.date, r.printerName, r.filamentName, +r.hours, +r.grams, r.cost1 ? +r.cost1.toFixed(2) : '']));
   const ws1 = XLSX.utils.aoa_to_sheet(rows); ws1['!cols'] = [{wch: 28}, {wch: 12}, {wch: 16}, {wch: 10}, {wch: 8}, {wch: 10}, {wch: 16}];
   XLSX.utils.book_append_sheet(wb, ws1, 'Реестр');
   reg.forEach(r => {
@@ -531,13 +843,13 @@ function sheetToSnap(ws, fallbackName) {
     name: dup ? name + ' (' + new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'}) + ')' : name,
     date: xlsxDateToStr(map['Дата']),
     printerName: String(map['Принтер'] || '—'),
-    plasticName: String(map['Пластик'] || '—'),
+    filamentName: String(map['Филамент'] || '—'),
     hours: String(map['Часов печати'] || 0),
-    grams: String(map['Граммов пластика'] || 0),
+    grams: String(map['Граммов филамента'] || 0),
     cost1: map['Себестоимость 1 шт, ₽'] || null,
     params: {
-      plasticId: 'petg', printerId: 'bambu',
-      grams: String(map['Граммов пластика'] || 0),
+      filamentId: 'petg', printerId: 'bambu',
+      grams: String(map['Граммов филамента'] || 0),
       hours: String(map['Часов печати'] || 0),
       drying: map['Сушка'] === 'Да' ? 'yes' : 'no',
       qty: String(map['Количество штук'] || map['Количество штук (годных)'] || 1),
@@ -589,7 +901,7 @@ function applySnapToCalc(p) {
   if (!p) return;
   ['grams', 'hours', 'qty', 'extraFixed', 'extraParts', 'packaging', 'prepTime', 'postTime', 'logTime', 'commission', 'commFixed'].forEach(k => sv(k, p[k] || ''));
   sv('custom-price', p.customPrice || '');
-  const ps = document.getElementById('plastic'); if ([...ps.options].some(o => o.value === p.plasticId)) ps.value = p.plasticId;
+  // #plastic select removed (multitable) — filamentId restored via loadSnap→tables
   const pr = document.getElementById('printer'); if ([...pr.options].some(o => o.value === p.printerId)) pr.value = p.printerId;
   rebuildDrying(); sv('drying', p.drying || 'no');
   if (p.selP) { selP = p.selP; Object.keys(PCS).forEach(k => { const e = document.getElementById(PCS[k].id); if (e) e.classList.toggle('sel', k === selP); }); }
@@ -610,7 +922,7 @@ function showPickerModal(snaps) {
       <div class="ri-info">
         <div class="ri-title">${escH(s.name)}</div>
         <div class="ri-meta">${s.date} · ${s.printerName}</div>
-        <div class="ri-sub">${s.hours} ч · ${s.grams} г · ${s.plasticName}</div>
+        <div class="ri-sub">${s.hours} ч · ${s.grams} г · ${s.filamentName}</div>
       </div>
       <div style="color:var(--blue);font-size:13px;font-weight:500;flex-shrink:0;padding-left:8px">Загрузить →</div>
     </div>`).join('');
@@ -704,8 +1016,9 @@ function triggerAutosave() {
   autosaveTimer = setTimeout(() => {
     const snap = {
       ts: Date.now(),
-      plasticId: gv('plastic'), printerId: gv('printer'),
-      grams: gv('grams'), hours: gv('hours'), drying: gv('drying'), qty: gv('qty'),
+      orderName: gv('order-name'),
+      tables: tables.map(t => ({...t})),
+      qty: gv('qty'),
       extraFixed: gv('extraFixed'), extraParts: gv('extraParts'), packaging: gv('packaging'),
       prepTime: gv('prepTime'), postTime: gv('postTime'), logTime: gv('logTime'),
       commission: gv('commission'), commFixed: gv('commFixed'),
@@ -721,11 +1034,41 @@ function restoreAutosave() {
     const snap = JSON.parse(localStorage.getItem(AUTOSAVE_KEY));
     if (!snap || !snap.ts) return;
     if (Date.now() - snap.ts > 86400000) return;
-    ['grams', 'hours', 'qty', 'extraFixed', 'extraParts', 'packaging', 'prepTime', 'postTime', 'logTime', 'commission', 'commFixed'].forEach(k => sv(k, snap[k] || ''));
+
+    sv('order-name', snap.orderName || '');
+
+    // Восстанавливаем столи
+    if (Array.isArray(snap.tables) && snap.tables.length > 0) {
+      tables = [];
+      snap.tables.forEach(t => tables.push({...t, id: t.id || uid()}));
+      // Обратная совместимость: старые автосохранения без поля defect
+      tables.forEach(t => { if (t.defect === undefined) t.defect = cfg.defaults?.defect ?? 0; });
+      // Обратная совместимость: старые автосохранения без filaments
+      tables.forEach(t => {
+        if (!t.filaments && t.plasticId) {
+          t.filaments = [{ id: uid(), filamentId: t.plasticId, grams: t.grams || '0' }];
+        } else if (!t.filaments && t.filamentId) {
+          t.filaments = [{ id: uid(), filamentId: t.filamentId, grams: t.grams || '0' }];
+        } else if (!t.filaments) {
+          t.filaments = [{ id: uid(), filamentId: (cfg.filaments[0] || {}).id || '', grams: t.grams || '90' }];
+        }
+      });
+      renderTables();
+    } else if (snap.filamentId || snap.printerId) {
+      // legacy autosave
+      tables = [{
+        id: uid(),
+        printerId: snap.printerId || (cfg.printers[0] || {}).id || '',
+        filamentId: snap.filamentId || (cfg.filaments[0] || {}).id || '',
+        grams: snap.grams || '90',
+        hours: snap.hours || '6.6',
+        drying: snap.drying || 'no',
+      }];
+      renderTables();
+    }
+
+    ['qty', 'extraFixed', 'extraParts', 'packaging', 'prepTime', 'postTime', 'logTime', 'commission', 'commFixed'].forEach(k => sv(k, snap[k] || ''));
     sv('custom-price', snap.customPrice || '');
-    const ps = document.getElementById('plastic'); if ([...ps.options].some(o => o.value === snap.plasticId)) ps.value = snap.plasticId;
-    const pr = document.getElementById('printer'); if ([...pr.options].some(o => o.value === snap.printerId)) pr.value = snap.printerId;
-    rebuildDrying(); sv('drying', snap.drying || 'no');
     if (snap.selP) { selP = snap.selP; Object.keys(PCS).forEach(k => { const e = document.getElementById(PCS[k].id); if (e) e.classList.toggle('sel', k === selP); }); }
     if (snap.selT) { selT = snap.selT; renderTaxOps(); }
   } catch {}
@@ -751,53 +1094,41 @@ function confirmRename() {
 function syncS() {
   document.getElementById('s_elec').value = cfg.electricity;
   document.getElementById('s_op').value = cfg.operatorRate;
-  document.getElementById('s_maint').value = cfg.maintenance;
-  document.getElementById('s_defect').value = cfg.defect;
   updateWageCalc();
-  renderDryers(); renderPrinters(); renderPlastics(); renderTaxes();
+  renderDryers(); renderPrinters(); renderFilaments(); renderTaxes();
   syncDryerSel();
 }
 const dOpts = sel => cfg.dryers.map(d => `<option value="${escH(d.id)}"${d.id === sel ? ' selected' : ''}>${escH(d.name)} (${d.kw} кВт)</option>`).join('');
 function renderDryers() { document.getElementById('dryers-list').innerHTML = cfg.dryers.map((d, i) => `<div class="si"><div class="si-h"><div class="si-name">${escH(d.name)}</div><button class="del-btn" onclick="delDryer('${d.id}')">Удалить</button></div><div class="sg2"><div class="sf"><label>Название</label><input type="text" value="${d.name}" oninput="cfg.dryers[${i}].name=this.value;this.closest('.si').querySelector('.si-name').textContent=this.value;renderPrinters()"></div><div class="sf"><label>Мощность (кВт)</label><input type="number" value="${d.kw}" min="0" step="0.01" oninput="cfg.dryers[${i}].kw=+this.value"></div></div></div>`).join(''); }
-function renderPrinters() { document.getElementById('printers-list').innerHTML = cfg.printers.map((p, i) => `<div class="si"><div class="si-h"><div class="si-name">${escH(p.name)}</div><button class="del-btn" onclick="delPrinter('${p.id}')">Удалить</button></div><div class="sg3"><div class="sf"><label>Название</label><input type="text" value="${p.name}" oninput="cfg.printers[${i}].name=this.value;this.closest('.si').querySelector('.si-name').textContent=this.value"></div><div class="sf"><label>Стоимость (₽)</label><input type="number" value="${p.cost}" min="0" step="100" oninput="cfg.printers[${i}].cost=+this.value"></div><div class="sf"><label>Часов амортизации</label><input type="number" value="${cfg.depreciationHours}" min="1" step="100" oninput="cfg.depreciationHours=+this.value"></div><div class="sf"><label>Мощность печати (кВт)</label><input type="number" value="${p.kw}" min="0" step="0.01" oninput="cfg.printers[${i}].kw=+this.value"></div><div class="sf" style="grid-column:span 2"><label>Сушилка</label><select onchange="cfg.printers[${i}].dryerId=this.value">${dOpts(p.dryerId)}</select></div></div></div>`).join(''); }
-function renderPlastics() { document.getElementById('plastics-list').innerHTML = cfg.plastics.map((p, i) => `<div class="si"><div class="si-h"><div class="si-name">${escH(p.name)}</div><button class="del-btn" onclick="delPlastic('${p.id}')">Удалить</button></div><div class="sg2"><div class="sf"><label>Название</label><input type="text" value="${p.name}" oninput="cfg.plastics[${i}].name=this.value;this.closest('.si').querySelector('.si-name').textContent=this.value"></div><div class="sf"><label>Цена за кг (₽)</label><input type="number" value="${p.pricePerKg}" min="0" step="10" oninput="cfg.plastics[${i}].pricePerKg=+this.value"></div></div></div>`).join(''); }
+function renderPrinters() { document.getElementById('printers-list').innerHTML = cfg.printers.map((p, i) => `<div class="si"><div class="si-h"><div class="si-name">${escH(p.name)}</div><button class="del-btn" onclick="delPrinter('${p.id}')">Удалить</button></div><div class="sg2"><div class="sf" style="grid-column:span 2"><label>Название</label><input type="text" value="${p.name}" oninput="cfg.printers[${i}].name=this.value;this.closest('.si').querySelector('.si-name').textContent=this.value"></div><div class="sf"><label>Стоимость (₽)</label><input type="number" value="${p.cost}" min="0" step="100" oninput="cfg.printers[${i}].cost=+this.value"></div><div class="sf"><label>Часов амортизации</label><input type="number" value="${cfg.depreciationHours}" min="1" step="100" oninput="cfg.depreciationHours=+this.value"></div><div class="sf"><label>Мощность печати (кВт)</label><input type="number" value="${p.kw}" min="0" step="0.01" oninput="cfg.printers[${i}].kw=+this.value"></div><div class="sf"><label>Обслуживание (₽/час)</label><input type="number" value="${p.maintenance ?? 5}" min="0" step="0.5" oninput="cfg.printers[${i}].maintenance=+this.value"></div><div class="sf" style="grid-column:span 2"><label>Сушилка</label><select onchange="cfg.printers[${i}].dryerId=this.value">${dOpts(p.dryerId)}</select></div></div></div>`).join(''); }
+function renderFilaments() { document.getElementById('filaments-list').innerHTML = cfg.filaments.map((p, i) => `<div class="si"><div class="si-h"><div class="si-name">${escH(p.name)}</div><button class="del-btn" onclick="delFilament('${p.id}')">Удалить</button></div><div class="sg2"><div class="sf"><label>Название</label><input type="text" value="${p.name}" oninput="cfg.filaments[${i}].name=this.value;this.closest('.si').querySelector('.si-name').textContent=this.value"></div><div class="sf"><label>Цена за кг (₽)</label><input type="number" value="${p.pricePerKg}" min="0" step="10" oninput="cfg.filaments[${i}].pricePerKg=+this.value"></div></div></div>`).join(''); }
 function renderTaxes() { document.getElementById('taxes-list').innerHTML = cfg.taxes.map((t, i) => `<div class="tax-row"><div class="sf"><label>Название</label><input type="text" value="${t.name}" oninput="cfg.taxes[${i}].name=this.value"></div><div class="sf"><label>Ставка %</label><input type="number" value="${t.rate}" min="0" max="100" step="0.1" oninput="cfg.taxes[${i}].rate=+this.value"></div><button class="del-btn" onclick="delTax('${t.id}')">✕</button></div>`).join(''); }
 function addDryer() { cfg.dryers.push({id: uid(), name: 'Новая сушилка', kw: 0.3}); renderDryers(); renderPrinters(); }
 function delDryer(id) { cfg.dryers = cfg.dryers.filter(d => d.id !== id); cfg.printers.forEach(p => { if (p.dryerId === id) p.dryerId = cfg.dryers[0]?.id || ''; }); renderDryers(); renderPrinters(); }
-function addPrinter() { cfg.printers.push({id: uid(), name: 'Новый принтер', cost: 30000, kw: 0.15, dryerId: cfg.dryers[0]?.id || ''}); renderPrinters(); }
+function addPrinter() { cfg.printers.push({id: uid(), name: 'Новый принтер', cost: 30000, kw: 0.15, dryerId: cfg.dryers[0]?.id || '', maintenance: 5}); renderPrinters(); }
 function delPrinter(id) { cfg.printers = cfg.printers.filter(p => p.id !== id); renderPrinters(); }
-function addPlastic() { cfg.plastics.push({id: uid(), name: 'Новый пластик', pricePerKg: 1000}); renderPlastics(); }
-function delPlastic(id) { cfg.plastics = cfg.plastics.filter(p => p.id !== id); renderPlastics(); }
+function addFilament() { cfg.filaments.push({id: uid(), name: 'Новый филамент', pricePerKg: 1000}); renderFilaments(); }
+function delFilament(id) { cfg.filaments = cfg.filaments.filter(p => p.id !== id); renderFilaments(); }
 function addTax() { cfg.taxes.push({id: uid(), name: 'Новый режим', rate: 0}); renderTaxes(); }
 function delTax(id) { cfg.taxes = cfg.taxes.filter(t => t.id !== id); renderTaxes(); }
 function saveSettings() {
   cfg.electricity = +document.getElementById('s_elec').value || cfg.electricity;
   cfg.operatorRate = +document.getElementById('s_op').value || cfg.operatorRate;
-  cfg.maintenance = +document.getElementById('s_maint').value || 0;
-  cfg.defect = +document.getElementById('s_defect').value || 0;
-  svC(); rebuildSelects(); renderTaxOps(); calc();
+  svC(); renderTables(); renderTaxOps(); calc();
   const n = document.getElementById('sn-s'); n.classList.add('show'); setTimeout(() => n.classList.remove('show'), 2500);
 }
 
 // ── CALC SELECTS ───────────────────────────────────────────
 function rebuildSelects() {
-  const ps = document.getElementById('plastic'), pv = ps.value;
-  ps.innerHTML = cfg.plastics.map(p => `<option value="${escH(p.id)}">${escH(p.name)} — ${p.pricePerKg} ₽/кг</option>`).join('');
-  if ([...ps.options].some(o => o.value === pv)) ps.value = pv;
-  const pr = document.getElementById('printer'), prv = pr.value;
-  pr.innerHTML = cfg.printers.map(p => `<option value="${escH(p.id)}">${escH(p.name)}</option>`).join('');
-  if ([...pr.options].some(o => o.value === prv)) pr.value = prv;
-  rebuildDrying();
+  // После перехода на мультистол #plastic/#printer убраны из HTML.
+  // Вызывается при импорте JSON — обновляем столи вместо старых selects.
+  renderTables();
 }
 function rebuildDrying() {
-  const pr = cfg.printers.find(p => p.id === gv('printer')) || cfg.printers[0];
-  const dry = cfg.dryers.find(d => d.id === pr?.dryerId);
-  const sel = document.getElementById('drying'), prev = sel.value;
-  sel.innerHTML = '<option value="no">Нет</option>';
-  if (dry && dry.kw > 0) sel.innerHTML += `<option value="yes">${escH(dry.name)} (${dry.kw} кВт)</option>`;
-  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+  // Сушилка теперь в каждом столе — см. refreshTableDryer().
+  // Оставлена для обратной совместимости с importFile/importXlsxToReg.
 }
-function onPrinterChange() { rebuildDrying(); calc(); }
+function onPrinterChange() { calc(); }
 
 // ── PRICE CARDS ────────────────────────────────────────────
 function renderTaxOps() {
@@ -838,32 +1169,52 @@ function updateSales() {
   else { be.textContent = bk + ' шт'; be.className = bk > qty ? 'over' : ''; }
 }
 
+function calcTable(t) {
+  // Считает себестоимость одного стола за всю партию (не делённую на qty)
+  const printer = cfg.printers.find(p => p.id === t.printerId) || cfg.printers[0];
+  if (!printer) return { filamentCost: 0, printerTot: 0, elecTot: 0, maintTot: 0, defectAdd: 0 };
+  const dryer = cfg.dryers.find(d => d.id === printer.dryerId);
+  const hourIn = safeNum(t.hours, 0, 0, 10000);
+  const drying = t.drying === 'yes';
+  const hourRate = printer.cost / Math.max(1, cfg.depreciationHours);
+  const kwh = printer.kw + (drying ? (dryer?.kw || 0) : 0);
+  const plasticTot = (t.filaments || []).reduce((sum, f) => {
+    const mat = cfg.filaments.find(p => p.id === f.filamentId) || cfg.filaments[0];
+    return sum + (parseFloat(f.grams) || 0) / 1000 * (mat?.pricePerKg || 0);
+  }, 0);
+  const printerTot  = hourRate * hourIn;
+  const elecTot     = kwh * hourIn * cfg.electricity;
+  const maintTot    = (printer.maintenance ?? cfg.defaults?.maintenance ?? 5) * hourIn;
+  const baseCost    = plasticTot + printerTot + elecTot + maintTot;
+  const defectAdd   = baseCost * ((+t.defect || 0) / 100);
+  return { filamentCost: plasticTot, printerTot, elecTot, maintTot, defectAdd };
+}
+
 function calc() {
-  const plId = gv('plastic'), prId = gv('printer');
+  if (!tables.length) return;
   const qtyRaw = gv('qty'), qtyNum = +qtyRaw, qty = qtyNum || 1,
         qtyIsZero = (qtyRaw === '' || qtyNum <= 0),
-        qtyNonInt = (qtyRaw !== '' && qtyNum > 0 && !Number.isInteger(qtyNum)),
-        drying = gv('drying') === 'yes';
+        qtyNonInt = (qtyRaw !== '' && qtyNum > 0 && !Number.isInteger(qtyNum));
   const prepM = +gv('prepTime') || 0, postM = +gv('postTime') || 0, logM = +gv('logTime') || 0;
   const xParts = +gv('extraParts') || 0, xPack = +gv('packaging') || 0, xFixed = +gv('extraFixed') || 0;
   const commPct = (+gv('commission') || 0) / 100;
-  const defPct = cfg.defect || 0;
-  const gramIn = safeNum(gv('grams'), 0, 0, 100000), hourIn = safeNum(gv('hours'), 0, 0, 10000);
-  const plastic = cfg.plastics.find(p => p.id === plId) || cfg.plastics[0];
-  const printer = cfg.printers.find(p => p.id === prId) || cfg.printers[0];
-  if (!printer || !plastic) return; // guard: все принтеры/пластики удалены
-  const dryer = cfg.dryers.find(d => d.id === printer?.dryerId);
-  const hourRate = printer.cost / Math.max(1, cfg.depreciationHours);
-  const kwh = printer.kw + (drying ? (dryer?.kw || 0) : 0);
-  const plasticTot = (gramIn / 1000) * plastic.pricePerKg;
-  const pl1 = plasticTot / qty;
-  const printerTot = hourRate * hourIn;
-  const elecTot = kwh * hourIn * cfg.electricity;
-  const maintTot = cfg.maintenance * hourIn;
+
+  // Суммируем по всем столам
+  let filamentCost = 0, printerTot = 0, elecTot = 0, maintTot = 0, defectTot = 0;
+  tables.forEach(t => {
+    const r = calcTable(t);
+    filamentCost += r.filamentCost;
+    printerTot += r.printerTot;
+    elecTot    += r.elecTot;
+    maintTot   += r.maintTot;
+    defectTot  += r.defectAdd;
+  });
+
   const opTot = ((prepM + postM + logM) / 60) * cfg.operatorRate;
+  const pl1 = filamentCost / qty;
   const pr1 = printerTot / qty, el1 = elecTot / qty, ma1 = maintTot / qty, op1 = opTot / qty, ex1 = xFixed / qty;
   const baseCost1 = pl1 + pr1 + el1 + ma1 + op1 + ex1 + xParts + xPack;
-  const defAdd1 = defPct > 0 ? baseCost1 * (defPct / 100) : 0;
+  const defAdd1 = defectTot / qty;
   const cost1 = baseCost1 + defAdd1;
   const costAll = cost1 * qty;
   const defAddAll = defAdd1 * qty;
@@ -875,7 +1226,7 @@ function calc() {
   set('b_tot', cost1); set('b_pl', pl1); set('b_pr', pr1); set('b_el', el1);
   set('b_ma', ma1); set('b_op', op1); set('b_pt', xParts); set('b_pk', xPack); set('b_ex', ex1);
   const dl = document.getElementById('b_defL'), dv = document.getElementById('b_def');
-  if (defPct > 0) { dl.style.display = ''; dv.style.display = ''; document.getElementById('b_defP').textContent = defPct; set('b_def', defAdd1); }
+  if (defAdd1 > 0) { dl.style.display = ''; dv.style.display = ''; document.getElementById('b_defP').textContent = ''; set('b_def', defAdd1); }
   else { dl.style.display = 'none'; dv.style.display = 'none'; }
   const qhintEl = document.getElementById('qhint');
   const batchTotEl = document.getElementById('bb_tot');
@@ -884,11 +1235,11 @@ function calc() {
   else { qhintEl.textContent = '(' + qty + ' шт)'; qhintEl.style.color = ''; }
   if (batchTotEl) { batchTotEl.style.color = ''; }
   set('bb_tot', costAll);
-  set('bb_pl', plasticTot); set('bb_pr', printerTot); set('bb_el', elecTot);
+  set('bb_pl', filamentCost); set('bb_pr', printerTot); set('bb_el', elecTot);
   set('bb_ma', maintTot); set('bb_op', opTot);
   set('bb_ex', xFixed + (xParts + xPack) * qty);
   const dbl = document.getElementById('bb_defL'), dbv = document.getElementById('bb_def');
-  if (defPct > 0) { dbl.style.display = ''; dbv.style.display = ''; document.getElementById('bb_defP').textContent = defPct; set('bb_def', defAddAll); }
+  if (defAddAll > 0) { dbl.style.display = ''; dbv.style.display = ''; document.getElementById('bb_defP').textContent = ''; set('bb_def', defAddAll); }
   else { dbl.style.display = 'none'; dbv.style.display = 'none'; }
   updateSales();
   triggerAutosave();
@@ -944,7 +1295,8 @@ function updateDryerCost() {
 
 // ── СОХРАНЕНИЕ И СКАЧИВАНИЕ EXCEL ────────────────────────────
 function openSaveAndDownloadMo() {
-  document.getElementById('proj-name').value = '';
+  const orderName = gv('order-name').trim();
+  document.getElementById('proj-name').value = orderName;
   document.getElementById('dup-warn').style.display = 'none';
   document.getElementById('mo-save-btn').textContent = 'Сохранить и скачать';
   document.getElementById('mo-save-btn').onclick = confirmSaveAndDownload;
@@ -985,7 +1337,8 @@ function execDelSnap() {
 // ── ИНИЦИАЛИЗАЦИЯ ─────────────────────────────────────────────
 // Все функции готовы — теперь запускаем приложение.
 // Сплеш будет скрыт по окончании CSS-анимации fadeOut (см. initSplash выше).
-rebuildSelects();
+// Инициализация столов
+if (tables.length === 0) addTable(); else renderTables();
 renderTaxOps();
 restoreAutosave();
 calc();
@@ -1000,8 +1353,9 @@ function flushAutosave() {
   clearTimeout(autosaveTimer);
   const snap = {
     ts: Date.now(),
-    plasticId: gv('plastic'), printerId: gv('printer'),
-    grams: gv('grams'), hours: gv('hours'), drying: gv('drying'), qty: gv('qty'),
+    orderName: gv('order-name'),
+    tables: tables.map(t => ({...t})),
+    qty: gv('qty'),
     extraFixed: gv('extraFixed'), extraParts: gv('extraParts'), packaging: gv('packaging'),
     prepTime: gv('prepTime'), postTime: gv('postTime'), logTime: gv('logTime'),
     commission: gv('commission'), commFixed: gv('commFixed'),
@@ -1015,9 +1369,13 @@ document.addEventListener('visibilitychange', function() {
 window.addEventListener('pagehide', flushAutosave);
 
 // ── EVENT LISTENERS ───────────────────────────────────────────
-document.querySelectorAll('input[type=number]:not(#custom-price):not([id^="hc"]):not([id^="s_"]),select:not(#printer)').forEach(el => el.addEventListener('input', function(){ calc(); checkAllFields(); }));
+// Числовые инпуты и select'ы (кроме кастомных) — пересчёт при изменении
+document.querySelectorAll('input[type=number]:not(#custom-price):not([id^="hc"]):not([id^="s_"]),select').forEach(el => el.addEventListener('input', function(){ calc(); checkAllFields(); }));
 document.getElementById('commFixed').addEventListener('input', updateSales);
-document.getElementById('printer').addEventListener('change', onPrinterChange);
+document.getElementById('custom-price').addEventListener('input', function() {
+  if (selP === 'custom') updateSales();
+});
+// #printer убран в мультистол — onPrinterChange вызывается через onTableChange
 document.getElementById('proj-name').addEventListener('keydown', e => { if (e.key === 'Enter') confirmSave(); if (e.key === 'Escape') closeM('mo-save'); });
 
 const ri = document.getElementById('rename-input');
@@ -1042,9 +1400,14 @@ function openEstimateMo() {
   document.querySelectorAll('.est-opt').forEach(o => o.classList.toggle('on', o.getAttribute('data-est') === 'unit'));
   document.getElementById('est-qty-row').style.display = 'none';
   sv('est-custom-qty', '');
+  sv('est-order-name', gv('order-name'));
   updateEstPrices();
   openM('mo-estimate');
 }
+
+document.getElementById('est-order-name').addEventListener('input', function() {
+  sv('order-name', this.value);
+});
 
 function selectEst(which) {
   estSel = which;
@@ -1082,8 +1445,9 @@ function updateEstCustom() {
 }
 
 function exportEstimate(format) {
+  const orderName = gv('est-order-name') || 'Новый заказ';
   // TODO: user will wire actual export. For now just close.
-  console.log('Export estimate:', format, 'option:', estSel);
+  console.log('Export estimate:', format, 'option:', estSel, 'orderName:', orderName);
   closeM('mo-estimate');
 }
 
@@ -1094,7 +1458,7 @@ window.xlsDL = xlsDL;
 window.openS = openS; window.closeS = closeS;
 window.openR = openR; window.closeR = closeR;
 window.openM = openM; window.closeM = closeM;
-window.calcHours = calcHours; window.copyHours = copyHours; window.calc = calc;
+window.calcHours = calcHours; window.copyHours = copyHours; window.openHoursCalc = openHoursCalc; window.calc = calc;
 window.updateWageCalc = updateWageCalc;
 window.openSaveMo = openSaveMo; window.confirmSave = confirmSave;
 window.confirmReplace = confirmReplace;
@@ -1106,10 +1470,10 @@ window.setSort = setSort;
 window.startRename = startRename; window.confirmRename = confirmRename;
 window.saveSettings = saveSettings; window.syncS = syncS;
 window.renderDryers = renderDryers; window.renderPrinters = renderPrinters;
-window.renderPlastics = renderPlastics; window.renderTaxes = renderTaxes;
+window.renderFilaments = renderFilaments; window.renderTaxes = renderTaxes;
 window.addDryer = addDryer; window.delDryer = delDryer;
 window.addPrinter = addPrinter; window.delPrinter = delPrinter;
-window.addPlastic = addPlastic; window.delPlastic = delPlastic;
+window.addFilament = addFilament; window.delFilament = delFilament;
 window.addTax = addTax; window.delTax = delTax;
 window.selTax = selTax; window.selPrice = selPrice;
 window.onPrinterChange = onPrinterChange;
@@ -1126,5 +1490,13 @@ window.exportEstimate = exportEstimate;
 window.checkField = checkField;
 window.checkAllFields = checkAllFields;
 window.installPWA = installPWA;
+window.App = App;
+window.addTable = addTable; window.removeTable = removeTable;
+window.onTableChange = onTableChange; window.refreshTableDryer = refreshTableDryer;
+window.checkTableField = checkTableField;
+window.addTableFilament = addTableFilament; window.removeFilament = removeFilament; window.onFilamentChange = onFilamentChange;
+// Экспорт состояния для тест-раннера
+Object.defineProperty(window, 'tables', { get: function(){ return tables; } });
+Object.defineProperty(window, 'comp',   { get: function(){ return comp;   } });
 
 }); // end DOMContentLoaded

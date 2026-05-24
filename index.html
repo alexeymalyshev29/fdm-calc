@@ -15,6 +15,44 @@
 <link rel="stylesheet" href="style.css">
 
 
+<style>
+/* ── Мульти-филамент ─────────────────────────────────── */
+.filament-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px 12px;
+  margin-top: 10px;
+  background: var(--card-alt);
+}
+.filament-card-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  min-height: 18px;
+}
+.add-filament-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: none;
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  cursor: pointer;
+  width: 100%;
+  justify-content: center;
+  transition: background .15s, border-color .15s;
+  margin-top: 10px;
+}
+.add-filament-btn:hover {
+  background: var(--blue-bg);
+  border-color: var(--blue);
+}
+</style>
 </head>
 <body>
 <div id="splash-overlay">
@@ -118,15 +156,13 @@
             <input type="number" id="s_op" step="1" min="0" oninput="updateWageCalc()">
             <div class="wage-calc" id="wage-calc"></div>
           </div>
-          <div class="sf"><label>Обслуживание (₽/час печати)</label><input type="number" id="s_maint" step="0.5" min="0" placeholder="напр. 5"></div>
-          <div class="sf"><label>Ожидаемый брак (%)</label><input type="number" id="s_defect" step="0.5" min="0" max="50" placeholder="0"></div>
         </div>
-        <p class="hint-text">Обслуживание = затраты на сопла, клей, настройку ÷ часы печати в месяц. Брак добавляется отдельной строкой к себестоимости.</p>
+        <p class="hint-text">Обслуживание = затраты на сопла, клей, настройку ÷ часы печати в месяц. Указывается отдельно для каждого принтера. Брак добавляется отдельной строкой к себестоимости.</p>
       </div>
     </div>
-    <div class="ss"><div class="ss-h"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="0 0 256 256"><circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="128" r="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> Пластики</div><div class="ss-b">
+    <div class="ss"><div class="ss-h"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="0 0 256 256"><circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="128" r="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> Филаменты</div><div class="ss-b">
         <div style="padding:4px 0 10px;">
-          <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Учёт стоимости предварительной сушки пластика в цене</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Учёт стоимости предварительной сушки филамента в цене</div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
             <select id="dryer-cost-sel" style="font-size:11px;padding:3px 22px 3px 6px;height:24px;max-width:150px;color:var(--text2);border-color:var(--border-light)" onchange="updateDryerCost()"></select>
             <span style="font-size:11px;color:var(--text3)">×</span>
@@ -140,8 +176,8 @@
           <div id="dryer-cost-result" style="font-size:11px;color:var(--text3);line-height:1.5;"></div>
           <div id="dryer-cost-hint" style="display:none"></div>
         </div>
-        <div id="plastics-list"></div>
-        <button class="add-btn" onclick="addPlastic()">＋ Добавить пластик</button></div></div>
+        <div id="filaments-list"></div>
+        <button class="add-btn" onclick="addFilament()">＋ Добавить филамент</button></div></div>
     <div class="ss"><div class="ss-h"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="32 48 192 160" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><line x1="40" y1="200" x2="216" y2="200"/><line x1="56" y1="56" x2="56" y2="200"/><line x1="200" y1="56" x2="200" y2="200"/><line x1="56" y1="88" x2="96" y2="88"/><line x1="160" y1="88" x2="200" y2="88"/><rect x="96" y="64" width="64" height="48" rx="6"/><polyline points="116 112 116 124 128 140 140 124 140 112"/><polyline points="128 140 128 160 80 160 80 180 176 180"/></svg> Принтеры</div><div class="ss-b"><div id="printers-list"></div><button class="add-btn" onclick="addPrinter()">＋ Добавить принтер</button></div></div>
     <div class="ss"><div class="ss-h"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="0 0 256 256"><circle cx="168" cy="88" r="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M24,113.22V62.78a8,8,0,0,1,6.68-7.89L168,32a56,56,0,0,1,0,112L30.68,121.11A8,8,0,0,1,24,113.22Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M152,208v8a32,32,0,0,0,32,32h16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M202.49,132.12l-32.36,71.19a8,8,0,0,1-7.28,4.69H144a8,8,0,0,1-8-8V138.67" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> Сушилки</div><div class="ss-b"><div id="dryers-list"></div><button class="add-btn" onclick="addDryer()">＋ Добавить сушилку</button></div></div>
     <div class="ss"><div class="ss-h"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="0 0 256 256"><ellipse cx="96" cy="84" rx="80" ry="36" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M16,84v40c0,19.88,35.82,36,80,36s80-16.12,80-36V84" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="64" y1="117" x2="64" y2="157" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M176,96.72c36.52,3.34,64,17.86,64,35.28,0,19.88-35.82,36-80,36-19.6,0-37.56-3.17-51.47-8.44" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M80,159.28V172c0,19.88,35.82,36,80,36s80-16.12,80-36V132" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="192" y1="165" x2="192" y2="205" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="117" x2="128" y2="205" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> Налоговые режимы</div><div class="ss-b"><div id="taxes-list"></div><button class="add-btn" onclick="addTax()">＋ Добавить режим</button></div></div>
@@ -230,7 +266,7 @@
 <div class="mo" id="mo-save">
   <div class="mc">
     <h4><svg width="16" height="16" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M216,83.31V208a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V48a8,8,0,0,1,8-8H172.69a8,8,0,0,1,5.65,2.34l35.32,35.32A8,8,0,0,1,216,83.31Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M80,216V152a8,8,0,0,1,8-8h80a8,8,0,0,1,8,8v64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="152" y1="72" x2="96" y2="72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> Сохранить расчёт</h4>
-    <div class="sf"><label>Название проекта</label><input type="text" id="proj-name" aria-label="Название расчёта" placeholder="Например: Кронштейн для камеры" maxlength="80"></div>
+    <div class="sf"><label>Название проекта</label><input type="text" id="proj-name" aria-label="Название расчёта" placeholder="Новый заказ" maxlength="80"></div>
     <div class="mc-warn" id="dup-warn" style="display:none"></div>
     <div class="mc-btns">
       <button class="mc-cancel" onclick="closeM('mo-save')">Отмена</button>
@@ -258,6 +294,11 @@
       <svg width="16" height="16" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"><path d="M160,40h40a8,8,0,0,1,8,8V216a8,8,0,0,1-8,8H56a8,8,0,0,1-8-8V48a8,8,0,0,1,8-8H96"/><path d="M88,72V64a40,40,0,0,1,80,0v8Z"/><line x1="96" y1="120" x2="160" y2="120"/><line x1="96" y1="152" x2="160" y2="152"/></svg>
       Смета для заказа
     </h4>
+    <div class="fld">
+      <label>Название заказа</label>
+      <input type="text" id="est-order-name" maxlength="80" placeholder="Новый заказ">
+    </div>
+    <p style="font-size:12px;color:var(--text2);margin:14px 0 6px">Сколько штук добавить в смету?</p>
     <div class="est-options">
       <button class="est-opt" type="button" data-est="unit" onclick="selectEst('unit')">
         <span class="est-radio"><span class="est-radio-dot"></span></span>
@@ -306,6 +347,7 @@
 <div class="mo" id="mo-hours">
   <div class="mc">
     <h4><svg width="16" height="16" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><polyline points="128 80 128 128 168 152" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="184 104 224 104 224 64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M188.4,192a88,88,0,1,1,1.83-126.23C202,77.69,211.72,88.93,224,104" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> Калькулятор времени печати</h4>
+    <div id="hc-table-label" style="font-size:12px;color:var(--text2,#888);margin-top:-4px;margin-bottom:8px;display:none"></div>
     <div class="hc-row">
       <div class="sf"><label>Дней</label><input type="number" id="hc-d" placeholder="0" min="0" step="1" oninput="calcHours()"></div>
       <div class="sf"><label>Часов</label><input type="number" id="hc-h" placeholder="0" min="0" max="23" step="1" oninput="calcHours()"></div>
@@ -385,41 +427,15 @@
       <svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><circle cx="56" cy="136" r="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="88" r="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="200" cy="168" r="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="56" y1="40" x2="56" y2="112" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="200" y1="40" x2="200" y2="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="40" x2="128" y2="64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="56" y1="160" x2="56" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="200" y1="192" x2="200" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="112" x2="128" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
       Параметры заказа
     </h3>
-    <div class="g2">
+
+    <!-- СТРОКА: НАЗВАНИЕ ЗАКАЗА + КОЛИЧЕСТВО ШТУК -->
+    <div class="g2 order-top-row" style="margin-bottom:14px">
       <div class="fld">
         <label>
-          <svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="128" r="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-          Тип пластика
+          <svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M92.69,216H48a8,8,0,0,1-8-8V163.31a8,8,0,0,1,2.34-5.65L165.66,34.34a8,8,0,0,1,11.31,0L221.66,79a8,8,0,0,1,0,11.31L98.34,213.66A8,8,0,0,1,92.69,216Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="136" y1="64" x2="192" y2="120" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="164" y1="92" x2="68" y2="188" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="95.49" y1="215.49" x2="40.51" y2="160.51" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+          Название заказа
         </label>
-        <select id="plastic"></select>
-      </div>
-      <div class="fld">
-        <label>
-          <svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="32 48 192 160" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><line x1="40" y1="200" x2="216" y2="200"/><line x1="56" y1="56" x2="56" y2="200"/><line x1="200" y1="56" x2="200" y2="200"/><line x1="56" y1="88" x2="96" y2="88"/><line x1="160" y1="88" x2="200" y2="88"/><rect x="96" y="64" width="64" height="48" rx="6"/><polyline points="116 112 116 124 128 140 140 124 140 112"/><polyline points="128 140 128 160 80 160 80 180 176 180"/></svg> Принтер
-        </label>
-        <select id="printer" onchange="onPrinterChange()"></select>
-      </div>
-      <div class="fld">
-        <label>
-          <svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><line x1="128" y1="40" x2="128" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="104" y1="216" x2="152" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="56" y1="88" x2="200" y2="56" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M24,168c0,17.67,20,24,32,24s32-6.33,32-24L56,88Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M168,136c0,17.67,20,24,32,24s32-6.33,32-24L200,56Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-          Грамм пластика
-        </label>
-        <input type="number" id="grams" aria-label="Граммов пластика" value="90" min="1" step="1" oninput="checkField('grams','warn-grams')"><span id="warn-grams" class="zero-warn" style="display:none">⚠ введите значение</span>
-      </div>
-      <div class="fld">
-        <label>
-          <svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><circle cx="128" cy="136" r="88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="136" x2="168" y2="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="104" y1="16" x2="152" y2="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-          Часов печати
-          <span class="hours-help" onclick="openM('mo-hours')" title="Калькулятор времени">?</span>
-        </label>
-        <input type="number" id="hours" aria-label="Часов печати" value="6.6" min="0.1" step="0.1" oninput="checkField('hours','warn-hours')"><span id="warn-hours" class="zero-warn" style="display:none">⚠ введите значение</span>
-      </div>
-      <div class="fld">
-        <label>
-          <svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><circle cx="168" cy="88" r="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M24,113.22V62.78a8,8,0,0,1,6.68-7.89L168,32a56,56,0,0,1,0,112L30.68,121.11A8,8,0,0,1,24,113.22Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M152,208v8a32,32,0,0,0,32,32h16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M202.49,132.12l-32.36,71.19a8,8,0,0,1-7.28,4.69H144a8,8,0,0,1-8-8V138.67" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-          Сушка пластика во время печати
-        </label>
-        <select id="drying"><option value="no">Нет</option></select>
+        <input type="text" id="order-name" aria-label="Название заказа" placeholder="Новый заказ" maxlength="80" oninput="triggerAutosave()">
       </div>
       <div class="fld">
         <label>
@@ -428,6 +444,14 @@
         </label>
         <input type="number" id="qty" aria-label="Количество штук в партии" value="4" min="1" step="1" oninput="checkField('qty','warn-qty',{int:true})"><span id="warn-qty" class="zero-warn" style="display:none">⚠ введите значение</span>
       </div>
+    </div>
+
+    <!-- СТОЛИКИ (мультистол) -->
+    <div id="tables-container"></div>
+    <button class="add-table-btn" onclick="addTable()">
+      <svg width="14" height="14" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round"><line x1="128" y1="40" x2="128" y2="216"/><line x1="40" y1="128" x2="216" y2="128"/></svg>
+      Добавить стол
+    </button>
     </div>
   </div>
 
@@ -469,7 +493,7 @@
         <div class="bk">
           <span class="tl">Себестоимость 1 шт</span><span class="tv" id="b_tot">—</span>
           <div class="div"></div>
-          <span class="rl">Пластик</span><span class="rv" id="b_pl">—</span>
+          <span class="rl">Филамент</span><span class="rv" id="b_pl">—</span>
           <span class="rl">Амортизация принтера</span><span class="rv" id="b_pr">—</span>
           <span class="rl">Электричество</span><span class="rv" id="b_el">—</span>
           <span class="rl">Обслуживание</span><span class="rv" id="b_ma">—</span>
@@ -484,7 +508,7 @@
         <div class="bkd">
           <span class="tl">Себестоимость партии <span class="qh" id="qhint"></span></span><span class="tv" id="bb_tot">—</span>
           <div class="div"></div>
-          <span class="bl">Пластик (всего)</span><span class="bv" id="bb_pl">—</span>
+          <span class="bl">Филамент (всего)</span><span class="bv" id="bb_pl">—</span>
           <span class="bl">Амортизация (всего)</span><span class="bv" id="bb_pr">—</span>
           <span class="bl">Электричество (всего)</span><span class="bv" id="bb_el">—</span>
           <span class="bl">Обслуживание (всего)</span><span class="bv" id="bb_ma">—</span>
@@ -564,7 +588,7 @@
 <button id="fab-sales" onclick="scrollToSales()" aria-label="Перейти к продажам" style="
   display:none;
   position:fixed;
-  bottom:calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  bottom:calc(4.5rem + env(safe-area-inset-bottom, 0px));
   right:1.25rem;
   width:52px;height:52px;
   border-radius:50%;

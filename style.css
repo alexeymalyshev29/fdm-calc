@@ -613,6 +613,14 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin
 .sg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .sg3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 
+#dryers-list,
+#printers-list,
+#filaments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .si {
   background: var(--bg-elev);
   border: 1px solid var(--border);
@@ -649,7 +657,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin
 .add-btn:hover { background: var(--blue-bg); border-color: var(--blue); color: var(--blue); }
 .tax-row {
   display: grid; grid-template-columns: 1fr 100px auto;
-  gap: 8px; align-items: end;
+  gap: 8px; align-items: start;
   padding: 8px;
   background: var(--bg-elev);
   border: 1px solid var(--border);
@@ -1222,3 +1230,62 @@ select::-ms-expand { display: none; }
 /* Subtle improvements per theme */
 /* Tax row inputs in mono need to be visible against dark border */
 /* Override autosave badge color in mono */
+
+/* ── МУЛЬТИСТОЛИК ──────────────────────────────────────────── */
+.table-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px 14px;
+  margin-bottom: 10px;
+  background: var(--bg2, var(--bg));
+}
+.table-card-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  min-height: 20px;
+}
+.table-num {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+.table-del-btn {
+  background: none;
+  border: none;
+  color: var(--text3);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  border-radius: 4px;
+  transition: color .15s, background .15s;
+}
+.table-del-btn:hover {
+  color: var(--red);
+  background: rgba(239,68,68,.08);
+}
+.add-table-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: none;
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 9px 16px;
+  cursor: pointer;
+  width: 100%;
+  justify-content: center;
+  transition: background .15s, border-color .15s;
+  margin-bottom: 2px;
+}
+.add-table-btn:hover {
+  background: rgba(var(--blue-rgb, 0,82,219), .06);
+  border-color: var(--blue);
+}
