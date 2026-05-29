@@ -125,14 +125,14 @@
             <button class="tm-btn" type="button" data-set-mode="light" title="Светлая" aria-label="Светлая">
               <svg width="18" height="18" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><circle cx="128" cy="128" r="56"/><line x1="128" y1="40" x2="128" y2="24"/><line x1="128" y1="232" x2="128" y2="216"/><line x1="40" y1="128" x2="24" y2="128"/><line x1="232" y1="128" x2="216" y2="128"/><line x1="65.9" y1="65.9" x2="54.6" y2="54.6"/><line x1="201.4" y1="201.4" x2="190.1" y2="190.1"/><line x1="65.9" y1="190.1" x2="54.6" y2="201.4"/><line x1="201.4" y1="54.6" x2="190.1" y2="65.9"/></svg>
             </button>
-            <button class="tm-btn" type="button" data-set-mode="auto" title="По системе" aria-label="По системе">
+            <button class="tm-btn" type="button" data-set-mode="auto" title="Как в системе" aria-label="Как в системе">
               <svg width="18" height="18" viewBox="0 0 256 256"><circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><path d="M128,32a96,96,0,0,0,0,192Z" fill="currentColor"/></svg>
             </button>
             <button class="tm-btn" type="button" data-set-mode="dark" title="Тёмная" aria-label="Тёмная">
               <svg width="18" height="18" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><path d="M232.16,150.27a8,8,0,0,0-8.95-3,88.06,88.06,0,0,1-109.5-109.5,8,8,0,0,0-11-9.5A104,104,0,0,0,144,232c.5,0,1,0,1.5,0a103.92,103.92,0,0,0,89.5-72.83A8,8,0,0,0,232.16,150.27Z"/></svg>
             </button>
           </div>
-          <span class="tm-label" id="tm-label">По системе</span>
+          <span class="tm-label" id="tm-label">Как в системе</span>
         </div>
       </div>
     </div>
@@ -143,30 +143,30 @@
         <button class="add-btn" onclick="exportCfgOnly()"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="0 0 256 256" fill="currentColor"><path d="M222.14,77.17,178.83,33.86A20,20,0,0,0,164.69,28H48A20,20,0,0,0,28,48V208a20,20,0,0,0,20,20H208a20,20,0,0,0,20-20V91.31A20,20,0,0,0,222.14,77.17ZM164,204H92V156h72Zm44,0H180V152a12,12,0,0,0-12-12H88a12,12,0,0,0-12,12v52H48V48H52V92a12,12,0,0,0,12,12H168a12,12,0,0,0,12-12V51.31L208,79.32ZM168,91.31V92H68V48H160v43.31Z"/></svg> Экспорт только настроек (JSON)</button>
         <button class="add-btn" onclick="exportAllJson()"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="0 0 256 256" fill="currentColor"><path d="M222.14,77.17,178.83,33.86A20,20,0,0,0,164.69,28H48A20,20,0,0,0,28,48V208a20,20,0,0,0,20,20H208a20,20,0,0,0,20-20V91.31A20,20,0,0,0,222.14,77.17ZM164,204H92V156h72Zm44,0H180V152a12,12,0,0,0-12-12H88a12,12,0,0,0-12,12v52H48V48H52V92a12,12,0,0,0,12,12H168a12,12,0,0,0,12-12V51.31L208,79.32ZM168,91.31V92H68V48H160v43.31Z"/></svg> Экспорт настроек и реестра (JSON)</button>
         <button class="add-btn" onclick="document.getElementById('import-file').click()"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="0 0 256 256" fill="currentColor"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0ZM93.66,85.66,120,59.31V168a8,8,0,0,0,16,0V59.31l26.34,26.35a8,8,0,0,0,11.32-11.32l-40-40a8,8,0,0,0-11.32,0l-40,40A8,8,0,0,0,93.66,85.66Z"/></svg> Импорт из файла (JSON)</button>
-        <p class="hint-text">JSON-файл может содержать настройки и реестр расчётов. Используйте для переноса на другой компьютер.</p>
+        <p class="hint-text">Ваши настройки и реестр расчётов хранятся локально, только на этом устройстве. Регулярно экспортируйте их в JSON — это резервная копия принтеров, филаментов, тарифов и всех настроек. Используйте для переноса на другое устройство.</p>
       </div>
     </div>
     <div class="ss">
       <div class="ss-h"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="0 0 256 256"><line x1="184" y1="80" x2="216" y2="80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="40" y1="80" x2="152" y2="80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="120" y1="176" x2="216" y2="176" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="40" y1="176" x2="88" y2="176" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="152" y1="56" x2="152" y2="104" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="88" y1="152" x2="88" y2="200" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> Общие параметры</div>
       <div class="ss-b">
         <div class="sg2">
-          <div class="sf"><label>Электричество (₽/кВт·ч)</label><input type="number" id="s_elec" step="0.01" min="0"></div>
           <div class="sf">
-            <label>Ставка оператора (₽/час)</label>
-            <input type="number" id="s_op" step="1" min="0" oninput="updateWageCalc()">
+            <label>Ставка оператора (<span id="lbl_cur_op">₽</span>/час)</label>
+            <input type="text" inputmode="decimal" id="s_op" onfocus="numInputInit(this,{decimals:2})" oninput="numInput(this,{decimals:2});if(+this.value<0)this.value=0;updateWageCalc()">
             <div class="wage-calc" id="wage-calc"></div>
           </div>
+          <div class="sf"><label>Электричество (<span id="lbl_cur_elec">₽</span>/кВт·ч)</label><input type="text" inputmode="decimal" id="s_elec" onfocus="numInputInit(this,{decimals:3})" oninput="numInput(this,{decimals:3});if(+this.value<0)this.value=0"></div>
+          <div class="sf" style="grid-column:span 2"><label>Символ валюты</label><div style="display:flex;align-items:center;gap:10px"><select id="s_currency" style="max-width:80px;flex-shrink:0" onchange="_syncCurrencyName()"><option value="₽">₽</option><option value="₸">₸</option><option value="₼">₼</option><option value="֏">֏</option><option value="$">$</option><option value="€">€</option><option value="¥">¥</option></select><span id="s_currency_name" style="color:var(--text3);font-size:13px;flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span></div></div>
         </div>
-        <p class="hint-text">Обслуживание = затраты на сопла, клей, настройку ÷ часы печати в месяц. Указывается отдельно для каждого принтера. Брак добавляется отдельной строкой к себестоимости.</p>
       </div>
     </div>
-    <div class="ss"><div class="ss-h"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="0 0 256 256"><circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="128" r="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> Филаменты</div><div class="ss-b">
+    <div class="ss ss-collapsible ss-open" id="ss-filaments"><div class="ss-h"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="173" cy="128" rx="12.61" ry="31.52"/><ellipse cx="172" cy="128" rx="52" ry="96"/><path d="M120.19,52.05c-9.63-15.33-30.1-23.04-46.34-13.58-17.94,10.45-26.79,32.65-31.27,51.82-5.15,22.05-5.71,45.14-1.66,67.42,3.72,20.44,11.11,42.57,27.77,56.21,7.24,5.93,16.62,9.51,26.01,7.85,9.23-1.63,17.29-7.5,23.24-14.53,1.49-1.76,2.86-3.62,4.11-5.55"/><path d="M93.59,55.98c-15.91,0-28.81,32.25-28.81,72.02s12.9,72.02,28.81,72.02"/><path d="M95.75,55.98h38.51"/><path d="M93.52,200.02h40.74"/><path d="M122.23,55.98c-15.91,0-28.81,32.25-28.81,72.02s12.9,72.02,28.81,72.02"/></svg> Филаменты<span class="ss-arrow">›</span></div><div class="ss-b">
         <div style="padding:4px 0 10px;">
           <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Учёт стоимости предварительной сушки филамента в цене</div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
             <select id="dryer-cost-sel" style="font-size:11px;padding:3px 22px 3px 6px;height:24px;max-width:150px;color:var(--text2);border-color:var(--border-light)" onchange="updateDryerCost()"></select>
             <span style="font-size:11px;color:var(--text3)">×</span>
-            <input type="number" id="dryer-hours" value="8" min="1" max="48" step="1" style="width:36px;font-size:11px;padding:3px 4px;height:24px;text-align:center" oninput="updateDryerCost()">
+            <input type="text" inputmode="decimal" id="dryer-hours" value="8" style="width:36px;font-size:11px;padding:3px 4px;height:24px;text-align:center" onfocus="numInputInit(this,{noDecimal:true})" oninput="numInput(this,{noDecimal:true});updateDryerCost()" onblur="numBlur(this,{max:48,min:1})">
             <div style="display:flex;flex-direction:column;gap:2px;">
               <button onclick="adjDryHours(1)" style="width:18px;height:12px;border:1px solid var(--border);border-radius:2px;background:var(--card-alt);color:var(--text2);font-size:9px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0">▲</button>
               <button onclick="adjDryHours(-1)" style="width:18px;height:12px;border:1px solid var(--border);border-radius:2px;background:var(--card-alt);color:var(--text2);font-size:9px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0">▼</button>
@@ -178,9 +178,9 @@
         </div>
         <div id="filaments-list"></div>
         <button class="add-btn" onclick="addFilament()">＋ Добавить филамент</button></div></div>
-    <div class="ss"><div class="ss-h"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="32 48 192 160" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><line x1="40" y1="200" x2="216" y2="200"/><line x1="56" y1="56" x2="56" y2="200"/><line x1="200" y1="56" x2="200" y2="200"/><line x1="56" y1="88" x2="96" y2="88"/><line x1="160" y1="88" x2="200" y2="88"/><rect x="96" y="64" width="64" height="48" rx="6"/><polyline points="116 112 116 124 128 140 140 124 140 112"/><polyline points="128 140 128 160 80 160 80 180 176 180"/></svg> Принтеры</div><div class="ss-b"><div id="printers-list"></div><button class="add-btn" onclick="addPrinter()">＋ Добавить принтер</button></div></div>
-    <div class="ss"><div class="ss-h"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="0 0 256 256"><circle cx="168" cy="88" r="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M24,113.22V62.78a8,8,0,0,1,6.68-7.89L168,32a56,56,0,0,1,0,112L30.68,121.11A8,8,0,0,1,24,113.22Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M152,208v8a32,32,0,0,0,32,32h16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M202.49,132.12l-32.36,71.19a8,8,0,0,1-7.28,4.69H144a8,8,0,0,1-8-8V138.67" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> Сушилки</div><div class="ss-b"><div id="dryers-list"></div><button class="add-btn" onclick="addDryer()">＋ Добавить сушилку</button></div></div>
-    <div class="ss"><div class="ss-h"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="0 0 256 256"><ellipse cx="96" cy="84" rx="80" ry="36" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M16,84v40c0,19.88,35.82,36,80,36s80-16.12,80-36V84" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="64" y1="117" x2="64" y2="157" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M176,96.72c36.52,3.34,64,17.86,64,35.28,0,19.88-35.82,36-80,36-19.6,0-37.56-3.17-51.47-8.44" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M80,159.28V172c0,19.88,35.82,36,80,36s80-16.12,80-36V132" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="192" y1="165" x2="192" y2="205" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="117" x2="128" y2="205" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> Налоговые режимы</div><div class="ss-b"><div id="taxes-list"></div><button class="add-btn" onclick="addTax()">＋ Добавить режим</button></div></div>
+    <div class="ss ss-collapsible" id="ss-printers"><div class="ss-h"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="32 48 192 160" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><line x1="40" y1="200" x2="216" y2="200"/><line x1="56" y1="56" x2="56" y2="200"/><line x1="200" y1="56" x2="200" y2="200"/><line x1="56" y1="88" x2="96" y2="88"/><line x1="160" y1="88" x2="200" y2="88"/><rect x="96" y="64" width="64" height="48" rx="6"/><polyline points="116 112 116 124 128 140 140 124 140 112"/><polyline points="128 140 128 160 80 160 80 180 176 180"/></svg> Принтеры<span class="ss-arrow">›</span></div><div class="ss-b"><div id="printers-list"></div><button class="add-btn" onclick="addPrinter()">＋ Добавить принтер</button></div></div>
+    <div class="ss ss-collapsible" id="ss-dryers"><div class="ss-h"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="0 0 256 256"><circle cx="168" cy="88" r="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M24,113.22V62.78a8,8,0,0,1,6.68-7.89L168,32a56,56,0,0,1,0,112L30.68,121.11A8,8,0,0,1,24,113.22Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M152,208v8a32,32,0,0,0,32,32h16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M202.49,132.12l-32.36,71.19a8,8,0,0,1-7.28,4.69H144a8,8,0,0,1-8-8V138.67" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> Сушилки<span class="ss-arrow">›</span></div><div class="ss-b"><div id="dryers-list"></div><button class="add-btn" onclick="addDryer()">＋ Добавить сушилку</button></div></div>
+    <div class="ss ss-collapsible" id="ss-taxes"><div class="ss-h"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" viewBox="0 0 256 256"><ellipse cx="96" cy="84" rx="80" ry="36" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M16,84v40c0,19.88,35.82,36,80,36s80-16.12,80-36V84" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="64" y1="117" x2="64" y2="157" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M176,96.72c36.52,3.34,64,17.86,64,35.28,0,19.88-35.82,36-80,36-19.6,0-37.56-3.17-51.47-8.44" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M80,159.28V172c0,19.88,35.82,36,80,36s80-16.12,80-36V132" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="192" y1="165" x2="192" y2="205" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="117" x2="128" y2="205" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> Налоговые режимы<span class="ss-arrow">›</span></div><div class="ss-b"><div id="taxes-list"></div><button class="add-btn" onclick="addTax()">＋ Добавить режим</button></div></div>
   </div>
   <div class="df">
     <button class="save-btn" onclick="saveSettings()">Сохранить настройки</button>
@@ -198,6 +198,7 @@
     <button class="dh-close" onclick="closeR()">×</button>
   </div>
   <div class="db">
+    <p class="hint-text" style="margin-bottom:10px">Реестр расчётов хранится только на этом устройстве. Экспортируйте в Excel — прямо отсюда, или в JSON вместе с настройками — из раздела Настройки. Используйте для резервной копии и переноса на другое устройство.</p>
     <div class="ra" style="margin-bottom:10px">
       <button class="ra-btn" onclick="importRegXlsx()"><svg width="14" height="14" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M176,128h48a8,8,0,0,1,8,8v64a8,8,0,0,1-8,8H32a8,8,0,0,1-8-8V136a8,8,0,0,1,8-8H80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="128" x2="128" y2="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="80 72 128 24 176 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="188" cy="168" r="12"/></svg>
         Добавить из Excel
@@ -252,12 +253,12 @@
 <!-- DELETE CONFIRM MODAL -->
 <div class="mo" id="mo-del-confirm">
   <div class="mc">
-    <h4><svg width="16" height="16" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><line x1="216" y1="56" x2="40" y2="56" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="104" y1="104" x2="104" y2="168" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="152" y1="104" x2="152" y2="168" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M200,56V208a8,8,0,0,1-8,8H64a8,8,0,0,1-8-8V56" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M168,56V40a16,16,0,0,0-16-16H104A16,16,0,0,0,88,40V56" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> Удалить расчёт?</h4>
-    <p id="del-confirm-text" style="color:var(--text2);font-size:13px;line-height:1.5;margin-bottom:4px"></p>
-    <p style="font-size:12px;color:var(--yellow);margin-bottom:0">⚠ Расчёт будет полностью удалён из кэш-памяти браузера.</p>
+    <h4 id="del-confirm-title"><svg width="16" height="16" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><line x1="216" y1="56" x2="40" y2="56" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="104" y1="104" x2="104" y2="168" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="152" y1="104" x2="152" y2="168" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M200,56V208a8,8,0,0,1-8,8H64a8,8,0,0,1-8-8V56" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M168,56V40a16,16,0,0,0-16-16H104A16,16,0,0,0,88,40V56" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> <span id="del-confirm-title-text">Удалить?</span></h4>
+    <p id="del-confirm-text" style="color:var(--text2);font-size:13px;line-height:1.5;margin-bottom:4px;display:flex;align-items:center;flex-wrap:wrap;gap:0"></p>
+    <p id="del-confirm-hint" style="font-size:12px;color:var(--yellow);margin-bottom:0">⚠ Расчёт будет полностью удалён из кэш-памяти браузера.</p>
     <div class="mc-btns">
       <button class="mc-cancel" onclick="closeM('mo-del-confirm')">Отмена</button>
-      <button class="mc-danger" id="del-confirm-btn" onclick="execDelSnap()">Удалить</button>
+      <button class="mc-danger" id="del-confirm-btn" onclick="execDelConfirm()">Удалить</button>
     </div>
   </div>
 </div>
@@ -266,7 +267,7 @@
 <div class="mo" id="mo-save">
   <div class="mc">
     <h4><svg width="16" height="16" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M216,83.31V208a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V48a8,8,0,0,1,8-8H172.69a8,8,0,0,1,5.65,2.34l35.32,35.32A8,8,0,0,1,216,83.31Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M80,216V152a8,8,0,0,1,8-8h80a8,8,0,0,1,8,8v64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="152" y1="72" x2="96" y2="72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> Сохранить расчёт</h4>
-    <div class="sf"><label>Название проекта</label><input type="text" id="proj-name" aria-label="Название расчёта" placeholder="Новый заказ" maxlength="80"></div>
+    <div class="sf"><label>Название расчёта</label><input type="text" id="proj-name" aria-label="Название расчёта" placeholder="Название расчёта" maxlength="80"></div>
     <div class="mc-warn" id="dup-warn" style="display:none"></div>
     <div class="mc-btns">
       <button class="mc-cancel" onclick="closeM('mo-save')">Отмена</button>
@@ -295,8 +296,8 @@
       Смета для заказа
     </h4>
     <div class="fld">
-      <label>Название заказа</label>
-      <input type="text" id="est-order-name" maxlength="80" placeholder="Новый заказ">
+      <label>Название расчёта</label>
+      <input type="text" id="est-order-name" maxlength="80" placeholder="Название расчёта">
     </div>
     <p style="font-size:12px;color:var(--text2);margin:14px 0 6px">Сколько штук добавить в смету?</p>
     <div class="est-options">
@@ -325,7 +326,7 @@
         <span class="est-opt-price" id="est-p-custom">—</span>
       </button>
       <div class="est-qty-row" id="est-qty-row" style="display:none">
-        <input type="number" id="est-custom-qty" min="1" step="1" placeholder="введите количество" oninput="updateEstCustom()">
+        <input type="text" inputmode="decimal" id="est-custom-qty" placeholder="введите количество" onfocus="numInputInit(this,{noDecimal:true})" oninput="numInput(this,{noDecimal:true});updateEstCustom()">
         <span>шт.</span>
       </div>
     </div>
@@ -349,9 +350,9 @@
     <h4><svg width="16" height="16" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><polyline points="128 80 128 128 168 152" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="184 104 224 104 224 64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M188.4,192a88,88,0,1,1,1.83-126.23C202,77.69,211.72,88.93,224,104" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg> Калькулятор времени печати</h4>
     <div id="hc-table-label" style="font-size:12px;color:var(--text2,#888);margin-top:-4px;margin-bottom:8px;display:none"></div>
     <div class="hc-row">
-      <div class="sf"><label>Дней</label><input type="number" id="hc-d" placeholder="0" min="0" step="1" oninput="calcHours()"></div>
-      <div class="sf"><label>Часов</label><input type="number" id="hc-h" placeholder="0" min="0" max="23" step="1" oninput="calcHours()"></div>
-      <div class="sf"><label>Минут</label><input type="number" id="hc-m" placeholder="0" min="0" max="59" step="1" oninput="calcHours()"></div>
+      <div class="sf"><label>Дней</label><input type="text" inputmode="decimal" id="hc-d" placeholder="0" onfocus="numInputInit(this,{noDecimal:true})" oninput="numInput(this,{noDecimal:true});calcHours()"></div>
+      <div class="sf"><label>Часов</label><input type="text" inputmode="decimal" id="hc-h" placeholder="0" onfocus="numInputInit(this,{noDecimal:true})" oninput="numInput(this,{noDecimal:true});calcHours()" onblur="numBlur(this,{max:23})"></div>
+      <div class="sf"><label>Минут</label><input type="text" inputmode="decimal" id="hc-m" placeholder="0" onfocus="numInputInit(this,{noDecimal:true})" oninput="numInput(this,{noDecimal:true});calcHours()" onblur="numBlur(this,{max:59})"></div>
     </div>
     <div class="hc-result">
       <span style="font-size:13px;color:var(--text2);flex:1">Итого часов:</span>
@@ -433,16 +434,16 @@
       <div class="fld">
         <label>
           <svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M92.69,216H48a8,8,0,0,1-8-8V163.31a8,8,0,0,1,2.34-5.65L165.66,34.34a8,8,0,0,1,11.31,0L221.66,79a8,8,0,0,1,0,11.31L98.34,213.66A8,8,0,0,1,92.69,216Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="136" y1="64" x2="192" y2="120" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="164" y1="92" x2="68" y2="188" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="95.49" y1="215.49" x2="40.51" y2="160.51" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-          Название заказа
+          Название расчёта
         </label>
-        <input type="text" id="order-name" aria-label="Название заказа" placeholder="Новый заказ" maxlength="80" oninput="triggerAutosave()">
+        <input type="text" id="order-name" aria-label="Название расчёта" placeholder="Название расчёта" maxlength="80" oninput="triggerAutosave()">
       </div>
       <div class="fld">
         <label>
           <svg width="15" height="15" style="display:inline;vertical-align:-2px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><circle cx="80" cy="80" r="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="176" cy="80" r="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="80" cy="176" r="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="176" y1="144" x2="176" y2="208" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="208" y1="176" x2="144" y2="176" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
           Количество штук в партии
         </label>
-        <input type="number" id="qty" aria-label="Количество штук в партии" value="4" min="1" step="1" oninput="checkField('qty','warn-qty',{int:true})"><span id="warn-qty" class="zero-warn" style="display:none">⚠ введите значение</span>
+        <input type="text" inputmode="decimal" id="qty" aria-label="Количество штук в партии" value="4" onfocus="numInputInit(this,{noDecimal:true})" oninput="numInput(this,{noDecimal:true});if(+this.value<0)this.value=0;checkField('qty','warn-qty',{int:true})"><span id="warn-qty" class="zero-warn" style="display:none">⚠ введите значение</span>
       </div>
     </div>
 
@@ -461,9 +462,9 @@
       Дополнительно
     </h3>
     <div class="g3">
-      <div class="fld"><label>Доп. затраты фикс. на партию (₽)</label><input type="number" id="extraFixed" value="0" min="0" step="1"></div>
-      <div class="fld"><label>Доп. детали на 1 шт (₽)</label><input type="number" id="extraParts" value="0" min="0" step="1"></div>
-      <div class="fld"><label>Упаковка на 1 шт (₽)</label><input type="number" id="packaging" value="0" min="0" step="1"></div>
+      <div class="fld"><label>Доп. затраты фикс. на партию (<span id="lbl_cur_ef">₽</span>)</label><input type="text" inputmode="decimal" id="extraFixed" value="0" onfocus="numInputInit(this,{decimals:2})" oninput="numInput(this,{decimals:2});if(+this.value<0)this.value=0"></div>
+      <div class="fld"><label>Доп. детали на 1 шт (<span id="lbl_cur_ep">₽</span>)</label><input type="text" inputmode="decimal" id="extraParts" value="0" onfocus="numInputInit(this,{decimals:2})" oninput="numInput(this,{decimals:2});if(+this.value<0)this.value=0"></div>
+      <div class="fld"><label>Упаковка на 1 шт (<span id="lbl_cur_pkg">₽</span>)</label><input type="text" inputmode="decimal" id="packaging" value="0" onfocus="numInputInit(this,{decimals:2})" oninput="numInput(this,{decimals:2});if(+this.value<0)this.value=0"></div>
     </div>
   </div>
 
@@ -473,9 +474,9 @@
       Работа оператора
     </h3>
     <div class="g3">
-      <div class="fld"><label>Время подготовки (мин)</label><input type="number" id="prepTime" value="0" min="0" step="1"></div>
-      <div class="fld"><label>Время постобработки (мин)</label><input type="number" id="postTime" value="5" min="0" step="1"></div>
-      <div class="fld"><label>Упаковка / логистика (мин)</label><input type="number" id="logTime" value="0" min="0" step="1"></div>
+      <div class="fld"><label>Время подготовки (мин)</label><input type="text" inputmode="decimal" id="prepTime" value="0" onfocus="numInputInit(this,{noDecimal:true})" oninput="numInput(this,{noDecimal:true});if(+this.value<0)this.value=0"></div>
+      <div class="fld"><label>Время постобработки (мин)</label><input type="text" inputmode="decimal" id="postTime" value="5" onfocus="numInputInit(this,{noDecimal:true})" oninput="numInput(this,{noDecimal:true});if(+this.value<0)this.value=0"></div>
+      <div class="fld"><label>Упаковка / логистика (мин)</label><input type="text" inputmode="decimal" id="logTime" value="0" onfocus="numInputInit(this,{noDecimal:true})" oninput="numInput(this,{noDecimal:true});if(+this.value<0)this.value=0"></div>
     </div>
   </div>
 
@@ -483,7 +484,7 @@
     <div class="pc" id="pc-w" onclick="selPrice('wholesale')"><div class="pcl">Оптовая</div><div class="pcs">×2</div><div class="pcv" id="r_w">—</div></div>
     <div class="pc sel" id="pc-rl" onclick="selPrice('retail_light')"><div class="pcl">Розница лайт</div><div class="pcs">×3 · прямые продажи</div><div class="pcv" id="r_rl">—</div></div>
     <div class="pc" id="pc-r" onclick="selPrice('retail')"><div class="pcl">Розница полная</div><div class="pcs">×4 · маркетплейс</div><div class="pcv" id="r_r">—</div></div>
-    <div class="pc custom" id="pc-c" onclick="selPrice('custom')"><div class="pcl">Своя цена</div><div class="pcs">вручную</div><div style="display:flex;align-items:baseline;gap:4px;margin-top:auto"><input class="pci" type="number" id="custom-price" aria-label="Своя цена" placeholder="—" min="0" step="1" style="margin-top:0" onclick="event.stopPropagation();selPrice('custom');" oninput="updateSales()"><span class="pci-rub" style="font-size:20px;font-weight:600;color:var(--text);flex-shrink:0">₽</span></div></div>
+    <div class="pc custom" id="pc-c" onclick="selPrice('custom')"><div class="pcl">Своя цена</div><div class="pcs">вручную</div><div style="display:flex;align-items:baseline;gap:4px;margin-top:auto"><input class="pci" type="text" inputmode="decimal" id="custom-price" aria-label="Своя цена" placeholder="—" style="margin-top:0" onclick="event.stopPropagation();selPrice('custom');" onfocus="numInputInit(this,{decimals:2})" oninput="numInput(this,{decimals:2});if(+this.value<0)this.value=0;updateSales()"><span class="pci-rub" style="font-size:20px;font-weight:600;color:var(--text);flex-shrink:0"><span id="lbl_cur_custom">₽</span></span></div></div>
   </div>
 
   <div class="two-col">
@@ -525,8 +526,8 @@
       </div>
       <div class="taxops" id="taxops"></div>
       <div class="cfields">
-        <div class="cfield"><label>Комиссия площадки %</label><input type="number" id="commission" aria-label="Комиссия %" value="8" min="0" max="100" step="1"></div>
-        <div class="cfield"><label>Фикс. комиссия (₽)</label><input type="number" id="commFixed" aria-label="Комиссия фиксированная" value="0" min="0" step="1"></div>
+        <div class="cfield"><label>Комиссия площадки %</label><input type="text" inputmode="decimal" id="commission" aria-label="Комиссия %" value="8" onfocus="numInputInit(this,{decimals:2})" oninput="numInput(this,{decimals:2});if(+this.value<0)this.value=0" onblur="numBlur(this,{max:100})"></div>
+        <div class="cfield"><label>Фикс. комиссия (<span id="lbl_cur_cf">₽</span>)</label><input type="text" inputmode="decimal" id="commFixed" aria-label="Комиссия фиксированная" value="0" onfocus="numInputInit(this,{decimals:2})" oninput="numInput(this,{decimals:2});if(+this.value<0)this.value=0"></div>
       </div>
       <div class="srow"><span>Цена продажи</span><span id="s_price">—</span></div>
       <div class="srow"><span>Налог</span><span id="s_tax">—</span></div>
@@ -559,6 +560,7 @@
 </div><!-- page-wrap -->
 
 <script src="xlsx.full.min.js"></script>
+<script src="exceljs.min.js"></script>
 <script src="jspdf.umd.min.js"></script>
 <!-- MOBILE TABBAR (показывается только на ≤768px) -->
 <nav class="mobile-tabbar" aria-label="Основная навигация">
@@ -606,5 +608,19 @@
 <script src="config.js"></script>
 <script src="help.js"></script>
 <script src="script.js"></script>
+<script>
+(function initSsAccordion() {
+  var IDS = ['ss-filaments', 'ss-printers', 'ss-dryers', 'ss-taxes'];
+  IDS.forEach(function(id) {
+    var ss = document.getElementById(id);
+    if (!ss) return;
+    var hdr = ss.querySelector('.ss-h');
+    if (!hdr) return;
+    hdr.addEventListener('click', function() {
+      ss.classList.toggle('ss-open');
+    });
+  });
+})();
+</script>
 </body>
 </html>
